@@ -1,0 +1,15 @@
+# Garmin Connect IQ / Monkey C build artifacts
+bin/
+build/
+*.prg
+*.iq
+*.apk
+*.tmp
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.iml
