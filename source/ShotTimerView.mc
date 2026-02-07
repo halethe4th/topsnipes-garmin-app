@@ -409,7 +409,7 @@ class ShotTimerView extends WatchUi.View {
             }
             var seconds = Math.floor((msRemaining + 999) / 1000);
             drawBigTimer(dc, centerX, h, seconds.toString());
-            drawFooter(dc, "ENTER=SHOT  STOP=END");
+            drawFooter(dc, "ENTER=SHOT  ESC=END");
             return;
         }
 
@@ -425,7 +425,7 @@ class ShotTimerView extends WatchUi.View {
                 splitText = "Last " + formatMs(_splitTimes[_splitTimes.size() - 1]);
             }
             dc.drawText(centerX, h - (SAFE_BOTTOM + 20), Graphics.FONT_TINY, splitText, Graphics.TEXT_JUSTIFY_CENTER);
-            drawFooter(dc, "ENTER=SHOT  STOP=END");
+            drawFooter(dc, "ENTER=SHOT  ESC=END");
             return;
         }
 
