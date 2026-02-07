@@ -5,6 +5,7 @@ build/
 *.iq
 *.apk
 *.tmp
+*.pem
 
 # macOS
 .DS_Store
@@ -13,3 +14,7 @@ build/
 .idea/
 .vscode/
 *.iml
+
+# Local-only build config
+local.build.env
+local.build.ps1

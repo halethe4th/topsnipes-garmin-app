@@ -11,20 +11,22 @@ Standalone Garmin Connect IQ app for TopSnipes shot timing and split capture.
 ## Local Build
 Use Connect IQ SDK + Monkey C compiler from Garmin.
 
-Example:
+Mac/Linux secure setup:
 ```bash
-monkeyc -f monkey.jungle -o bin/TopSnipes.prg -y <developer_key>
+cp local.build.env.example local.build.env
+# Edit local.build.env and set DEVELOPER_KEY_PATH to your private .pem
+./scripts/build.sh
+./scripts/run-sim.sh
 ```
 
 Windows example:
 ```powershell
-& "C:\Program Files\Garmin\ConnectIQ\Sdk\bin\monkeyc.bat" -f .\monkey.jungle -o .\bin\TopSnipes.prg -y C:\path\to\developer_key.pem -d fenix7
-```
-
-Simulator run:
-```powershell
-& "C:\Program Files\Garmin\ConnectIQ\Sdk\bin\monkeydo.bat" .\bin\TopSnipes.prg fenix7
+Copy-Item .\local.build.ps1.example .\local.build.ps1
+# Edit local.build.ps1 and set DEVELOPER_KEY_PATH to your private .pem
+.\scripts\build.ps1
+.\scripts\run-sim.ps1
 ```
 
 ## Notes
 This repo is intentionally separate from the web app for dedicated Garmin-focused development.
+Never commit private keys (`.pem`) to git or GitHub.

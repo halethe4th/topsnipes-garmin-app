@@ -1,0 +1,5 @@
+# Copy to local.build.ps1 and set machine-specific paths.
+# local.build.ps1 is gitignored.
+$CIQ_SDK_BIN = 'C:\Program Files\Garmin\ConnectIQ\Sdk\bin'
+$DEVELOPER_KEY_PATH = 'C:\Users\YourUser\Downloads\developer_key.pem'
+$DEVICE_ID = 'fenix7'
