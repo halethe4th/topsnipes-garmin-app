@@ -97,6 +97,10 @@ class ShotTimerView extends WatchUi.View {
         }
 
         if (key == WatchUi.KEY_START) {
+            if (_state == STATE_RUNNING) {
+                finishSession();
+                return true;
+            }
             if (_state == STATE_IDLE || _state == STATE_FINISHED) {
                 startCountdown();
                 return true;
@@ -271,21 +275,48 @@ class ShotTimerView extends WatchUi.View {
     }
 
     function saveLastSession(stats) {
-        Application.Storage.setValue("topsnipes_last_session", stats);
+        var safeSession = makeStorageSafeSession(stats);
+        try {
+            Application.Storage.setValue("topsnipes_last_session", safeSession);
+        } catch (ex) {
+            System.println("Failed to save last session: " + ex.toString());
+        }
     }
 
     function saveSessionHistory(stats) {
-        var history = Application.Storage.getValue("topsnipes_session_history");
+        var history = null;
+        try {
+            history = Application.Storage.getValue("topsnipes_session_history");
+        } catch (ex) {
+            System.println("Failed to load history: " + ex.toString());
+        }
         if (history == null) {
             history = [];
         }
 
-        history.add(stats);
+        // Defensive reset if an older build stored an incompatible shape.
+        try {
+            history.size();
+        } catch (ex) {
+            history = [];
+        }
+
+        history.add(makeStorageSafeSession(stats));
         while (history.size() > MAX_SESSION_HISTORY) {
             history.remove(0);
         }
 
-        Application.Storage.setValue("topsnipes_session_history", history);
+        try {
+            Application.Storage.setValue("topsnipes_session_history", history);
+        } catch (ex) {
+            System.println("Failed to save history, resetting: " + ex.toString());
+            try {
+                var resetHistory = [makeStorageSafeSession(stats)];
+                Application.Storage.setValue("topsnipes_session_history", resetHistory);
+            } catch (innerEx) {
+                System.println("Failed to reset history: " + innerEx.toString());
+            }
+        }
     }
 
     function loadWeaponPreference() {
@@ -548,6 +579,101 @@ class ShotTimerView extends WatchUi.View {
 
     function drawFooter(dc, text) {
         dc.drawText(dc.getWidth() / 2, dc.getHeight() - SAFE_BOTTOM, Graphics.FONT_XTINY, text, Graphics.TEXT_JUSTIFY_CENTER);
+    }
+
+    function makeStorageSafeSession(stats) {
+        if (stats == null) {
+            return null;
+        }
+
+        var cadenceBands = stats[:cadenceBands];
+        if (cadenceBands == null) {
+            cadenceBands = {
+                :aggressive => 0,
+                :combat => 0,
+                :control => 0,
+                :recovery => 0
+            };
+        }
+
+        var safeCadenceBands = {
+            "aggressive" => toSafeInt(cadenceBands[:aggressive]),
+            "combat" => toSafeInt(cadenceBands[:combat]),
+            "control" => toSafeInt(cadenceBands[:control]),
+            "recovery" => toSafeInt(cadenceBands[:recovery])
+        };
+
+        var safeSplits = [];
+        var splits = stats[:splits];
+        if (splits == null) {
+            splits = [];
+        }
+        for (var i = 0; i < splits.size(); i += 1) {
+            safeSplits.add(toSafeInt(splits[i]));
+        }
+
+        var safeShots = [];
+        var shots = stats[:shots];
+        if (shots == null) {
+            shots = [];
+        }
+        for (var j = 0; j < shots.size(); j += 1) {
+            var shot = shots[j];
+            safeShots.add({
+                "num" => toSafeInt(shot[:num]),
+                "elapsed" => toSafeInt(shot[:elapsed]),
+                "split" => toSafeInt(shot[:split]),
+                "isReload" => shot[:isReload] ? true : false,
+                "phase" => String(shot[:phase] || "unknown")
+            });
+        }
+
+        return {
+            "dataVersion" => toSafeInt(stats[:dataVersion], APP_DATA_VERSION),
+            "weapon" => String(stats[:weapon] || _sessionName),
+            "shotCount" => toSafeInt(stats[:shotCount]),
+            "elapsedMs" => toSafeInt(stats[:elapsedMs]),
+            "drawToFirstMs" => toSafeNullableInt(stats[:drawToFirstMs]),
+            "avgSplitMs" => toSafeNullableInt(stats[:avgSplitMs]),
+            "bestSplitMs" => toSafeNullableInt(stats[:bestSplitMs]),
+            "worstSplitMs" => toSafeNullableInt(stats[:worstSplitMs]),
+            "splitStdDevMs" => toSafeNullableInt(stats[:splitStdDevMs]),
+            "reloadCount" => toSafeInt(stats[:reloadCount]),
+            "avgReloadMs" => toSafeNullableInt(stats[:avgReloadMs]),
+            "transitionCount" => toSafeInt(stats[:transitionCount]),
+            "longestFastStreak" => toSafeInt(stats[:longestFastStreak]),
+            "firstThreeAvgMs" => toSafeNullableInt(stats[:firstThreeAvgMs]),
+            "lastThreeAvgMs" => toSafeNullableInt(stats[:lastThreeAvgMs]),
+            "fatigueDeltaMs" => toSafeNullableInt(stats[:fatigueDeltaMs]),
+            // Store ratios as integer percentages to keep storage primitive-safe.
+            "burstRatioPct" => toSafeInt(Math.round((stats[:burstRatio] || 0) * 100)),
+            "controlRatioPct" => toSafeInt(Math.round((stats[:controlRatio] || 0) * 100)),
+            "cadenceScore" => toSafeInt(stats[:cadenceScore]),
+            "executionScore" => toSafeInt(stats[:executionScore]),
+            "readinessScore" => toSafeInt(stats[:readinessScore]),
+            "cadenceBands" => safeCadenceBands,
+            "splits" => safeSplits,
+            "shots" => safeShots,
+            "savedAtMs" => System.getTimer()
+        };
+    }
+
+    function toSafeInt(value, fallback) {
+        var fb = fallback;
+        if (fb == null) {
+            fb = 0;
+        }
+        if (value == null) {
+            return fb;
+        }
+        return Math.round(value);
+    }
+
+    function toSafeNullableInt(value) {
+        if (value == null) {
+            return null;
+        }
+        return Math.round(value);
     }
 
     function average(values) {
