@@ -16,5 +16,15 @@ Example:
 monkeyc -f monkey.jungle -o bin/TopSnipes.prg -y <developer_key>
 ```
 
+Windows example:
+```powershell
+& "C:\Program Files\Garmin\ConnectIQ\Sdk\bin\monkeyc.bat" -f .\monkey.jungle -o .\bin\TopSnipes.prg -y C:\path\to\developer_key.pem -d fenix7
+```
+
+Simulator run:
+```powershell
+& "C:\Program Files\Garmin\ConnectIQ\Sdk\bin\monkeydo.bat" .\bin\TopSnipes.prg fenix7
+```
+
 ## Notes
 This repo is intentionally separate from the web app for dedicated Garmin-focused development.

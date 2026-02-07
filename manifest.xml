@@ -3,7 +3,6 @@
   <iq:application id="f4bb2e9c-bf1f-46ae-ae67-f3491153ec4d" type="watch-app" name="@Strings.AppName" entry="TopSnipesApp" launcherIcon="@Drawables.LauncherIcon" minSdkVersion="3.0.0">
     <iq:products>
       <iq:product id="fenix7" />
-      <iq:product id="instinct2" />
       <iq:product id="epix2" />
     </iq:products>
     <iq:languages>
