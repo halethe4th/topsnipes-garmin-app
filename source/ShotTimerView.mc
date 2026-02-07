@@ -117,7 +117,7 @@ class ShotTimerView extends WatchUi.View {
             }
         }
 
-        if (key == WatchUi.KEY_STOP || key == WatchUi.KEY_BACK) {
+        if (key == WatchUi.KEY_ESC) {
             if (_state == STATE_RUNNING || _state == STATE_COUNTDOWN) {
                 finishSession();
                 return true;
@@ -429,7 +429,7 @@ class ShotTimerView extends WatchUi.View {
 
         if (_state == STATE_FINISHED && _stats != null) {
             drawSummary(dc, w, h, _stats);
-            drawFooter(dc, "UP/DOWN=PAGE  BACK=RESET  START=NEW");
+            drawFooter(dc, "UP/DOWN=PAGE  ESC=RESET  START=NEW");
             return;
         }
 
