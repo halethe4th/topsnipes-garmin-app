@@ -11,6 +11,8 @@ class ShotTimerView extends WatchUi.View {
     const MIN_SHOT_INTERVAL_MS = 80;
     const MAX_SESSION_HISTORY = 75;
     const APP_DATA_VERSION = 2;
+    const SAFE_TOP = 46;
+    const SAFE_BOTTOM = 42;
 
     const STATE_IDLE = 0;
     const STATE_COUNTDOWN = 1;
@@ -416,13 +418,13 @@ class ShotTimerView extends WatchUi.View {
             drawBigTimer(dc, centerX, h, formatMs(elapsed));
 
             var shotLine = "Shots " + _shotTimes.size().toString();
-            dc.drawText(centerX, h - 72, Graphics.FONT_TINY, shotLine, Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(centerX, h - (SAFE_BOTTOM + 36), Graphics.FONT_TINY, shotLine, Graphics.TEXT_JUSTIFY_CENTER);
 
             var splitText = "Split --";
             if (_splitTimes.size() > 0) {
                 splitText = "Last " + formatMs(_splitTimes[_splitTimes.size() - 1]);
             }
-            dc.drawText(centerX, h - 56, Graphics.FONT_TINY, splitText, Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(centerX, h - (SAFE_BOTTOM + 20), Graphics.FONT_TINY, splitText, Graphics.TEXT_JUSTIFY_CENTER);
             drawFooter(dc, "ENTER=SHOT  STOP=END");
             return;
         }
@@ -434,15 +436,15 @@ class ShotTimerView extends WatchUi.View {
         }
 
         drawBigTimer(dc, centerX, h, "READY");
-        dc.drawText(centerX, h - 72, Graphics.FONT_TINY, "Weapon " + _sessionName, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(centerX, h - 56, Graphics.FONT_TINY, "MENU=CHANGE", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, h - (SAFE_BOTTOM + 36), Graphics.FONT_TINY, "Weapon " + _sessionName, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, h - (SAFE_BOTTOM + 20), Graphics.FONT_TINY, "MENU=CHANGE", Graphics.TEXT_JUSTIFY_CENTER);
         drawFooter(dc, "START/ENTER=GO");
     }
 
     function drawTitle(dc, x) {
-        drawBrandMark(dc, 22, 24);
-        dc.drawText(x, 24, Graphics.FONT_SMALL, "TOPSNIPES SHOT TIMER", Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawLine(20, 34, dc.getWidth() - 20, 34);
+        dc.drawText(x, SAFE_TOP - 14, Graphics.FONT_TINY, "TOPSNIPES", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(x, SAFE_TOP, Graphics.FONT_SMALL, "SHOT TIMER", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawLine(26, SAFE_TOP + 10, dc.getWidth() - 26, SAFE_TOP + 10);
     }
 
     function drawBrandMark(dc, x, y) {
@@ -503,44 +505,49 @@ class ShotTimerView extends WatchUi.View {
         } else if (_summaryPage == 2) {
             pageTitle = "READINESS";
         }
-        dc.drawText(width / 2, 56, Graphics.FONT_SMALL, pageTitle + " (" + (_summaryPage + 1).toString() + "/3)", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(width / 2, SAFE_TOP, Graphics.FONT_SMALL, pageTitle + " (" + (_summaryPage + 1).toString() + "/3)", Graphics.TEXT_JUSTIFY_CENTER);
 
         if (_summaryPage == 0) {
-            dc.drawText(10, 76, Graphics.FONT_TINY, "Weapon: " + stats[:weapon]);
-            dc.drawText(10, 92, Graphics.FONT_TINY, "Shots: " + stats[:shotCount].toString());
-            dc.drawText(10, 108, Graphics.FONT_TINY, "Draw->1st: " + formatMaybe(stats[:drawToFirstMs]));
-            dc.drawText(10, 124, Graphics.FONT_TINY, "Avg Split: " + formatMaybe(stats[:avgSplitMs]));
-            dc.drawText(10, 140, Graphics.FONT_TINY, "Best/Worst: " + formatMaybe(stats[:bestSplitMs]) + " / " + formatMaybe(stats[:worstSplitMs]));
-            dc.drawText(10, 156, Graphics.FONT_TINY, "Split SD: " + formatMaybe(stats[:splitStdDevMs]));
-            dc.drawText(10, 172, Graphics.FONT_TINY, "Reloads: " + stats[:reloadCount].toString() + " (avg " + formatMaybe(stats[:avgReloadMs]) + ")");
-            dc.drawText(10, 188, Graphics.FONT_TINY, "Elapsed: " + formatMs(stats[:elapsedMs]));
+            drawSummaryLine(dc, width, 0, "Weapon: " + stats[:weapon]);
+            drawSummaryLine(dc, width, 1, "Shots: " + stats[:shotCount].toString());
+            drawSummaryLine(dc, width, 2, "Draw->1st: " + formatMaybe(stats[:drawToFirstMs]));
+            drawSummaryLine(dc, width, 3, "Avg Split: " + formatMaybe(stats[:avgSplitMs]));
+            drawSummaryLine(dc, width, 4, "Best/Worst: " + formatMaybe(stats[:bestSplitMs]) + " / " + formatMaybe(stats[:worstSplitMs]));
+            drawSummaryLine(dc, width, 5, "Split SD: " + formatMaybe(stats[:splitStdDevMs]));
+            drawSummaryLine(dc, width, 6, "Reloads: " + stats[:reloadCount].toString() + " avg " + formatMaybe(stats[:avgReloadMs]));
+            drawSummaryLine(dc, width, 7, "Elapsed: " + formatMs(stats[:elapsedMs]));
             return;
         }
 
         if (_summaryPage == 1) {
-            dc.drawText(10, 76, Graphics.FONT_TINY, "Aggressive: " + stats[:cadenceBands][:aggressive].toString());
-            dc.drawText(10, 92, Graphics.FONT_TINY, "Combat: " + stats[:cadenceBands][:combat].toString());
-            dc.drawText(10, 108, Graphics.FONT_TINY, "Control: " + stats[:cadenceBands][:control].toString());
-            dc.drawText(10, 124, Graphics.FONT_TINY, "Recovery: " + stats[:cadenceBands][:recovery].toString());
-            dc.drawText(10, 140, Graphics.FONT_TINY, "Transitions: " + stats[:transitionCount].toString());
-            dc.drawText(10, 156, Graphics.FONT_TINY, "Fast streak: " + stats[:longestFastStreak].toString());
-            dc.drawText(10, 172, Graphics.FONT_TINY, "Burst ratio: " + formatPercent(stats[:burstRatio]));
-            dc.drawText(10, 188, Graphics.FONT_TINY, "Control ratio: " + formatPercent(stats[:controlRatio]));
+            drawSummaryLine(dc, width, 0, "Aggressive: " + stats[:cadenceBands][:aggressive].toString());
+            drawSummaryLine(dc, width, 1, "Combat: " + stats[:cadenceBands][:combat].toString());
+            drawSummaryLine(dc, width, 2, "Control: " + stats[:cadenceBands][:control].toString());
+            drawSummaryLine(dc, width, 3, "Recovery: " + stats[:cadenceBands][:recovery].toString());
+            drawSummaryLine(dc, width, 4, "Transitions: " + stats[:transitionCount].toString());
+            drawSummaryLine(dc, width, 5, "Fast streak: " + stats[:longestFastStreak].toString());
+            drawSummaryLine(dc, width, 6, "Burst ratio: " + formatPercent(stats[:burstRatio]));
+            drawSummaryLine(dc, width, 7, "Control ratio: " + formatPercent(stats[:controlRatio]));
             return;
         }
 
-        dc.drawText(10, 76, Graphics.FONT_TINY, "First3 avg: " + formatMaybe(stats[:firstThreeAvgMs]));
-        dc.drawText(10, 92, Graphics.FONT_TINY, "Last3 avg: " + formatMaybe(stats[:lastThreeAvgMs]));
-        dc.drawText(10, 108, Graphics.FONT_TINY, "Fatigue delta: " + formatSigned(stats[:fatigueDeltaMs]));
-        dc.drawText(10, 124, Graphics.FONT_TINY, "Cadence score: " + stats[:cadenceScore].toString());
-        dc.drawText(10, 140, Graphics.FONT_TINY, "Execution score: " + stats[:executionScore].toString());
-        dc.drawText(10, 156, Graphics.FONT_TINY, "Readiness: " + stats[:readinessScore].toString());
-        dc.drawText(10, 172, Graphics.FONT_TINY, "Data version: " + stats[:dataVersion].toString());
-        dc.drawText(10, 188, Graphics.FONT_TINY, "UP/DOWN pages");
+        drawSummaryLine(dc, width, 0, "First3 avg: " + formatMaybe(stats[:firstThreeAvgMs]));
+        drawSummaryLine(dc, width, 1, "Last3 avg: " + formatMaybe(stats[:lastThreeAvgMs]));
+        drawSummaryLine(dc, width, 2, "Fatigue delta: " + formatSigned(stats[:fatigueDeltaMs]));
+        drawSummaryLine(dc, width, 3, "Cadence score: " + stats[:cadenceScore].toString());
+        drawSummaryLine(dc, width, 4, "Execution score: " + stats[:executionScore].toString());
+        drawSummaryLine(dc, width, 5, "Readiness: " + stats[:readinessScore].toString());
+        drawSummaryLine(dc, width, 6, "Data version: " + stats[:dataVersion].toString());
+        drawSummaryLine(dc, width, 7, "UP/DOWN pages");
+    }
+
+    function drawSummaryLine(dc, width, idx, text) {
+        var y = SAFE_TOP + 26 + (idx * 16);
+        dc.drawText(width / 2, y, Graphics.FONT_TINY, text, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     function drawFooter(dc, text) {
-        dc.drawText(dc.getWidth() / 2, dc.getHeight() - 20, Graphics.FONT_XTINY, text, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(dc.getWidth() / 2, dc.getHeight() - SAFE_BOTTOM, Graphics.FONT_XTINY, text, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     function average(values) {
