@@ -463,7 +463,7 @@ class ShotTimerView extends WatchUi.View {
         try {
             _fitSession = ActivityRecording.createSession({
                 :name => "TopSnipes Shooting",
-                :sport => Activity.SPORT_SHOOTING,
+                :sport => Activity.SPORT_GENERIC,
                 :subSport => Activity.SUB_SPORT_GENERIC
             });
             _fitSession.start();
