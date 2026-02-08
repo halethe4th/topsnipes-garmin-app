@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources>
+  <string id="MainMenuHint">UP/DOWN scroll | START select</string>
+  <string id="ConfigHint">MENU moves row | UP/DOWN edits value</string>
+  <string id="ReviewHintCompact">START sync now | UP/DOWN scroll splits</string>
+  <string id="SettingsEditHint">MENU/START changes row | UP/DOWN edits</string>
+</resources>

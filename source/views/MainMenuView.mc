@@ -39,7 +39,7 @@ class MainMenuView extends WatchUi.View {
         dc.setColor(Constants.COLOR_TEXT, Constants.COLOR_BG);
         dc.clear();
 
-        dc.drawText(width / 2, 12, Graphics.FONT_SMALL, Rez.Strings.AppName, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(width / 2, 12, Graphics.FONT_SMALL, Rez.Strings.AppNameShort, Graphics.TEXT_JUSTIFY_CENTER);
 
         for (var i = 0; i < _items.size(); i += 1) {
             var y = startY + (i * rowHeight);

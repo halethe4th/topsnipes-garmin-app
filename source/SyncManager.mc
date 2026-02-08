@@ -1,6 +1,5 @@
 import Toybox.Communications;
 import Toybox.Timer;
-import Toybox.System;
 
 class SyncManager {
     var _storage as StorageManager;

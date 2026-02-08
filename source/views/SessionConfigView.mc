@@ -1,3 +1,4 @@
+import Toybox.Application;
 import Toybox.Graphics;
 import Toybox.WatchUi;
 
@@ -12,7 +13,7 @@ class SessionConfigView extends WatchUi.View {
         _selectedRow = 0;
         _weaponType = Constants.WeaponType.WEAPON_HANDGUN;
         _drillType = Constants.DrillType.DRILL_FREESTYLE;
-        _maxShots = 0;
+        _maxShots = readMaxShots();
     }
 
     function moveRow(delta as Number) as Void {
@@ -91,6 +92,31 @@ class SessionConfigView extends WatchUi.View {
 
         dc.setColor(Constants.COLOR_SUBTLE, Constants.COLOR_BG);
         dc.drawText(width / 2, dc.getHeight() - 14, Graphics.FONT_XTINY, Rez.Strings.ConfigHint, Graphics.TEXT_JUSTIFY_CENTER);
+    }
+
+    hidden function readMaxShots() as Number {
+        if (!(Application has :Properties)) {
+            return 0;
+        }
+        try {
+            var value = Application.Properties.getValue("maxShots");
+            if (value == null) {
+                return 0;
+            }
+            if (value instanceof Number) {
+                var numberValue = value as Number;
+                if (numberValue < 0) {
+                    return 0;
+                }
+                if (numberValue > Constants.MAX_SHOTS_LIMIT) {
+                    return Constants.MAX_SHOTS_LIMIT;
+                }
+                return numberValue;
+            }
+        } catch (ex) {
+            // no-op
+        }
+        return 0;
     }
 
     hidden function drawRow(dc as Graphics.Dc, row as Number, y as Number, title as String, value as String) as Void {

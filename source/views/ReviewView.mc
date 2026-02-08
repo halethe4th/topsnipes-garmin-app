@@ -42,7 +42,7 @@ class ReviewView extends WatchUi.View {
         dc.clear();
 
         dc.drawText(centerX, 8, Graphics.FONT_SMALL, Rez.Strings.ReviewTitle, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(centerX, 24, Graphics.FONT_XTINY, Constants.weaponLabel(_session.weaponType) + " • " + Constants.drillLabel(_session.drillType), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, 24, Graphics.FONT_XTINY, Constants.weaponLabel(_session.weaponType) + " | " + Constants.drillLabel(_session.drillType), Graphics.TEXT_JUSTIFY_CENTER);
 
         dc.setColor(Constants.COLOR_ACCENT, Constants.COLOR_BG);
         dc.drawText(centerX, 44, Graphics.FONT_MEDIUM, FormatUtils.formatMillis(_session.totalTimeMs), Graphics.TEXT_JUSTIFY_CENTER);

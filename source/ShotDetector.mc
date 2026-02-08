@@ -45,7 +45,7 @@ class ShotDetector {
             try {
                 Sensor.registerSensorDataListener(method(:onSensorData), options);
             } catch (ex) {
-                System.println("ShotDetector register failed: " + ex.toString());
+                LogUtils.debug("ShotDetector register failed");
             }
         }
     }
@@ -56,7 +56,7 @@ class ShotDetector {
             try {
                 Sensor.unregisterSensorDataListener();
             } catch (ex) {
-                System.println("ShotDetector unregister failed: " + ex.toString());
+                LogUtils.debug("ShotDetector unregister failed");
             }
         }
     }

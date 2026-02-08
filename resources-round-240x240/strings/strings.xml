@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources>
+  <string id="MainMenuHint">UP/DOWN | START</string>
+  <string id="ConfigHint">MENU row | UP/DOWN edit</string>
+  <string id="ReviewHintCompact">START sync | UP/DOWN</string>
+  <string id="HistoryHint">UP/DOWN | START</string>
+  <string id="SyncHint">START sync | BACK</string>
+  <string id="SettingsEditHint">MENU/START | UP/DOWN edit</string>
+</resources>

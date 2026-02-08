@@ -2,6 +2,7 @@ import Toybox.Activity;
 import Toybox.ActivityRecording;
 import Toybox.Application;
 import Toybox.Attention;
+import Toybox.FitContributor;
 import Toybox.Math;
 import Toybox.Position;
 import Toybox.System;
@@ -23,6 +24,9 @@ class SessionManager {
     var _debounceMs as Number;
 
     var _fitSession as ActivityRecording.Session or Null;
+    var _fitShotCountField as FitContributor.Field or Null;
+    var _fitAvgSplitField as FitContributor.Field or Null;
+    var _fitGpsVerifiedField as FitContributor.Field or Null;
     var _gpsRequestedAt as Number;
     var _gpsActive as Boolean;
     var _gpsVerified as Boolean;
@@ -46,6 +50,9 @@ class SessionManager {
         _debounceMs = Constants.DEFAULT_DEBOUNCE_MS;
 
         _fitSession = null;
+        _fitShotCountField = null;
+        _fitAvgSplitField = null;
+        _fitGpsVerifiedField = null;
         _gpsRequestedAt = 0;
         _gpsActive = false;
         _gpsVerified = false;
@@ -80,6 +87,9 @@ class SessionManager {
         _maxShots = maxShots;
         if (_maxShots < 0) {
             _maxShots = 0;
+        }
+        if (_maxShots > 0) {
+            _session.preallocate(_maxShots);
         }
         _state = Constants.SessionState.STATE_READY;
         resetGpsState();
@@ -117,6 +127,18 @@ class SessionManager {
         _lastCountdownSecond = -1;
         _state = Constants.SessionState.STATE_COUNTDOWN;
         _storage.saveActiveSessionSnapshot(_session);
+    }
+
+    function cancelCountdown() as Void {
+        if (_state != Constants.SessionState.STATE_COUNTDOWN) {
+            return;
+        }
+        _timer.cancelCountdown();
+        _lastCountdownSecond = -1;
+        _state = Constants.SessionState.STATE_READY;
+        if (_session != null) {
+            _storage.saveActiveSessionSnapshot(_session);
+        }
     }
 
     function updateState() as Void {
@@ -224,6 +246,7 @@ class SessionManager {
         _storage.saveSession(_session);
         _storage.clearActiveSessionSnapshot();
 
+        vibrateSessionEnd();
         _state = Constants.SessionState.STATE_COMPLETE;
     }
 
@@ -256,6 +279,11 @@ class SessionManager {
         _autoStop = readBoolProperty("autoStopEnabled", true);
         _hapticOnShot = readBoolProperty("hapticOnShot", true);
         _hapticOnStart = readBoolProperty("hapticOnStart", true);
+
+        _countdownSeconds = DeviceUtils.clamp(_countdownSeconds, 1, 30);
+        _debounceMs = DeviceUtils.clamp(_debounceMs, 50, 600);
+        _sensitivity = DeviceUtils.clamp(_sensitivity, 1, 10);
+        _maxShots = DeviceUtils.clamp(_maxShots, 0, Constants.MAX_SHOTS_LIMIT);
     }
 
     hidden function readNumberProperty(key as String, fallback as Number) as Number {
@@ -376,9 +404,13 @@ class SessionManager {
                     :sport => sportType
                 });
             }
+            setupFitFields();
             _fitSession.start();
         } catch (ex) {
             _fitSession = null;
+            _fitShotCountField = null;
+            _fitAvgSplitField = null;
+            _fitGpsVerifiedField = null;
         }
     }
 
@@ -388,12 +420,29 @@ class SessionManager {
         }
 
         try {
+            if (_fitShotCountField != null && _session != null) {
+                _fitShotCountField.setData(Math.round(_session.shotCount));
+            }
+            if (_fitAvgSplitField != null && _session != null) {
+                var avgSplitMs = _session.averageSplit();
+                if (avgSplitMs == null) {
+                    _fitAvgSplitField.setData(0.0);
+                } else {
+                    _fitAvgSplitField.setData(avgSplitMs / 1000.0);
+                }
+            }
+            if (_fitGpsVerifiedField != null) {
+                _fitGpsVerifiedField.setData(_gpsVerified ? 1 : 0);
+            }
             _fitSession.stop();
             _fitSession.save();
         } catch (ex) {
             // no-op
         }
         _fitSession = null;
+        _fitShotCountField = null;
+        _fitAvgSplitField = null;
+        _fitGpsVerifiedField = null;
     }
 
     hidden function vibrateShot() as Void {
@@ -412,6 +461,19 @@ class SessionManager {
         if (Attention has :vibrate) {
             Attention.vibrate([new Attention.VibeProfile(40, 120)]);
         }
+    }
+
+    hidden function vibrateSessionEnd() as Void {
+        if (!(Attention has :vibrate)) {
+            return;
+        }
+        Attention.vibrate([
+            new Attention.VibeProfile(80, 180),
+            new Attention.VibeProfile(0, 80),
+            new Attention.VibeProfile(80, 180),
+            new Attention.VibeProfile(0, 80),
+            new Attention.VibeProfile(80, 300)
+        ]);
     }
 
     hidden function updateGpsStatus() as Void {
@@ -438,5 +500,48 @@ class SessionManager {
         _gpsVerified = false;
         _gpsProgressPct = 0;
         _gpsStatus = Rez.Strings.GpsStatusOff;
+    }
+
+    hidden function setupFitFields() as Void {
+        if (_fitSession == null || !(_fitSession has :createField)) {
+            _fitShotCountField = null;
+            _fitAvgSplitField = null;
+            _fitGpsVerifiedField = null;
+            return;
+        }
+
+        try {
+            _fitShotCountField = _fitSession.createField(
+                "shot_count",
+                0,
+                FitContributor.DATA_TYPE_UINT16,
+                {
+                    :mesgType => FitContributor.MESG_TYPE_SESSION,
+                    :units => "shots"
+                }
+            );
+            _fitAvgSplitField = _fitSession.createField(
+                "avg_split",
+                1,
+                FitContributor.DATA_TYPE_FLOAT,
+                {
+                    :mesgType => FitContributor.MESG_TYPE_SESSION,
+                    :units => "sec"
+                }
+            );
+            _fitGpsVerifiedField = _fitSession.createField(
+                "gps_verified",
+                2,
+                FitContributor.DATA_TYPE_UINT16,
+                {
+                    :mesgType => FitContributor.MESG_TYPE_SESSION,
+                    :units => "bool"
+                }
+            );
+        } catch (ex) {
+            _fitShotCountField = null;
+            _fitAvgSplitField = null;
+            _fitGpsVerifiedField = null;
+        }
     }
 }

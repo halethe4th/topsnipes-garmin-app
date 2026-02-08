@@ -25,6 +25,10 @@ class TimerEngine {
         _countdownEndMs = System.getTimer() + (_countdownSeconds * 1000);
     }
 
+    function cancelCountdown() as Void {
+        _countdownEndMs = 0;
+    }
+
     function countdownRemainingMs() as Number {
         var remaining = _countdownEndMs - System.getTimer();
         if (remaining < 0) {

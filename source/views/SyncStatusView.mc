@@ -41,6 +41,7 @@ class SyncStatusView extends WatchUi.View {
             status = sync.statusText();
             pending = sync.pendingCount();
         }
+        status = trimText(status, 24);
 
         dc.drawText(centerX, 58, Graphics.FONT_MEDIUM, pending.toString(), Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(centerX, 78, Graphics.FONT_XTINY, Rez.Strings.SyncPendingLabel, Graphics.TEXT_JUSTIFY_CENTER);
@@ -49,5 +50,15 @@ class SyncStatusView extends WatchUi.View {
         dc.drawText(centerX, 110, Graphics.FONT_TINY, status, Graphics.TEXT_JUSTIFY_CENTER);
 
         dc.drawText(centerX, dc.getHeight() - 16, Graphics.FONT_XTINY, Rez.Strings.SyncHint, Graphics.TEXT_JUSTIFY_CENTER);
+    }
+
+    hidden function trimText(value as String, maxChars as Number) as String {
+        if (value.length() <= maxChars) {
+            return value;
+        }
+        if (maxChars <= 3) {
+            return value.substring(0, maxChars);
+        }
+        return value.substring(0, maxChars - 3) + "...";
     }
 }

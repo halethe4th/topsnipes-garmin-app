@@ -39,6 +39,10 @@ class TopSnipesApp extends Application.AppBase {
         return [view, delegate];
     }
 
+    function getGlanceView() as [WatchUi.GlanceView] or [WatchUi.GlanceView, WatchUi.GlanceViewDelegate] or Null {
+        return [new TopSnipesGlanceView()];
+    }
+
     function getSettingsView() as [WatchUi.Views, WatchUi.InputDelegates] or Null {
         return null;
     }

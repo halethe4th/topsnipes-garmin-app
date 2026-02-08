@@ -1,5 +1,5 @@
 import Toybox.Application;
-import Toybox.System;
+import Toybox.Math;
 
 class StorageManager {
     function initialize() {
@@ -22,6 +22,8 @@ class StorageManager {
             safeDeleteValue(removeId);
         }
         safeSetValue(Constants.STORAGE_SESSION_IDS, ids);
+        safeSetValue(Constants.STORAGE_LAST_TOTAL_MS, Math.round(session.totalTimeMs));
+        safeSetValue(Constants.STORAGE_LAST_SHOT_COUNT, Math.round(session.shotCount));
 
         queuePendingSync(key);
         return true;
@@ -110,11 +112,27 @@ class StorageManager {
         safeSetValue(Constants.STORAGE_PENDING_SYNC, filtered);
     }
 
+    function lastSessionTotalMs() as Number or Null {
+        var value = safeGetValue(Constants.STORAGE_LAST_TOTAL_MS);
+        if (value == null) {
+            return null;
+        }
+        return toNumber(value, 0);
+    }
+
+    function lastSessionShotCount() as Number or Null {
+        var value = safeGetValue(Constants.STORAGE_LAST_SHOT_COUNT);
+        if (value == null) {
+            return null;
+        }
+        return toNumber(value, 0);
+    }
+
     function safeGetValue(key as String) as Object or Null {
         try {
             return Application.Storage.getValue(key);
         } catch (ex) {
-            System.println("Storage read failed: " + key + " => " + ex.toString());
+            LogUtils.debug("Storage read failed: " + key);
             return null;
         }
     }
@@ -124,7 +142,7 @@ class StorageManager {
             Application.Storage.setValue(key, value);
             return true;
         } catch (ex) {
-            System.println("Storage write failed: " + key + " => " + ex.toString());
+            LogUtils.debug("Storage write failed: " + key);
             return false;
         }
     }
@@ -133,7 +151,7 @@ class StorageManager {
         try {
             Application.Storage.deleteValue(key);
         } catch (ex) {
-            System.println("Storage delete failed: " + key + " => " + ex.toString());
+            LogUtils.debug("Storage delete failed: " + key);
         }
     }
 

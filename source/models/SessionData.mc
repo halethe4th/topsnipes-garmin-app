@@ -16,14 +16,15 @@ class SessionData {
     var appVersion as String;
     var createdAtEpochMs as Number;
     var synced as Boolean;
+    var _fixedCapacity as Number;
 
     function initialize(sessionIdValue as String, weapon as Number, drill as Number, appVersionValue as String, device as String) {
         sessionId = sessionIdValue;
         weaponType = weapon;
         drillType = drill;
         startTimerMs = 0;
-        shotTimestamps = [];
-        splitTimes = [];
+        shotTimestamps = [] as Array<Number>;
+        splitTimes = [] as Array<Number>;
         totalTimeMs = 0;
         shotCount = 0;
         gpsLat = null;
@@ -32,13 +33,47 @@ class SessionData {
         appVersion = appVersionValue;
         createdAtEpochMs = Time.now().value();
         synced = false;
+        _fixedCapacity = 0;
     }
 
     function markStart(startMs as Number) as Void {
         startTimerMs = startMs;
     }
 
+    function preallocate(maxShots as Number) as Void {
+        if (maxShots <= 0) {
+            _fixedCapacity = 0;
+            shotTimestamps = [] as Array<Number>;
+            splitTimes = [] as Array<Number>;
+            shotCount = 0;
+            return;
+        }
+
+        _fixedCapacity = Math.round(maxShots);
+        shotTimestamps = new Array<Number>[_fixedCapacity];
+        if (_fixedCapacity > 1) {
+            splitTimes = new Array<Number>[_fixedCapacity - 1];
+        } else {
+            splitTimes = [] as Array<Number>;
+        }
+        shotCount = 0;
+    }
+
     function recordShot(timestampMs as Number) as Void {
+        if (_fixedCapacity > 0) {
+            if (shotCount >= _fixedCapacity) {
+                return;
+            }
+            if (shotCount > 0) {
+                var fixedPrior = shotTimestamps[shotCount - 1];
+                splitTimes[shotCount - 1] = timestampMs - fixedPrior;
+            }
+            shotTimestamps[shotCount] = timestampMs;
+            shotCount += 1;
+            totalTimeMs = timestampMs - startTimerMs;
+            return;
+        }
+
         if (shotCount > 0) {
             var prior = shotTimestamps[shotCount - 1];
             splitTimes.add(timestampMs - prior);
@@ -54,38 +89,58 @@ class SessionData {
     }
 
     function finalizeSession(endMs as Number) as Void {
-        if (shotCount > 0) {
-            totalTimeMs = endMs - startTimerMs;
+        if (startTimerMs <= 0) {
+            totalTimeMs = 0;
+            return;
         }
+        if (endMs < startTimerMs) {
+            totalTimeMs = 0;
+            return;
+        }
+        totalTimeMs = endMs - startTimerMs;
     }
 
     function lastSplit() as Number or Null {
-        if (splitTimes.size() == 0) {
+        if (shotCount < 2) {
             return null;
         }
-        return splitTimes[splitTimes.size() - 1];
+        return splitTimes[shotCount - 2];
     }
 
     function averageSplit() as Number or Null {
-        if (splitTimes.size() == 0) {
+        if (shotCount < 2) {
             return null;
         }
 
         var sum = 0;
-        for (var i = 0; i < splitTimes.size(); i += 1) {
+        var splitCount = shotCount - 1;
+        for (var i = 0; i < splitCount; i += 1) {
             sum += splitTimes[i];
         }
-        return sum / splitTimes.size();
+        return sum / splitCount;
     }
 
     function toDict() as Dictionary {
+        var shots = [] as Array<Number>;
+        var splits = [] as Array<Number>;
+        for (var i = 0; i < shotCount; i += 1) {
+            shots.add(shotTimestamps[i]);
+        }
+        var splitCount = shotCount - 1;
+        if (splitCount < 0) {
+            splitCount = 0;
+        }
+        for (var j = 0; j < splitCount; j += 1) {
+            splits.add(splitTimes[j]);
+        }
+
         var payload = {
             "sessionId" => sessionId,
             "weaponType" => weaponType,
             "drillType" => drillType,
             "startTimerMs" => startTimerMs,
-            "shotTimestamps" => shotTimestamps,
-            "splitTimes" => splitTimes,
+            "shotTimestamps" => shots,
+            "splitTimes" => splits,
             "totalTimeMs" => totalTimeMs,
             "shotCount" => shotCount,
             "deviceModel" => deviceModel,
@@ -107,10 +162,14 @@ class SessionData {
         var shots = [] as Array<Number>;
         var splits = [] as Array<Number>;
 
-        for (var i = 0; i < shotTimestamps.size(); i += 1) {
+        for (var i = 0; i < shotCount; i += 1) {
             shots.add(Math.round(shotTimestamps[i]));
         }
-        for (var j = 0; j < splitTimes.size(); j += 1) {
+        var splitCount = shotCount - 1;
+        if (splitCount < 0) {
+            splitCount = 0;
+        }
+        for (var j = 0; j < splitCount; j += 1) {
             splits.add(Math.round(splitTimes[j]));
         }
 

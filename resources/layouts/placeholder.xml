@@ -1,4 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<layout id="Placeholder" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
-    <label x="center" y="center" text="@Strings.AppName" font="Graphics.FONT_SMALL" justification="Graphics.TEXT_JUSTIFY_CENTER" />
-</layout>

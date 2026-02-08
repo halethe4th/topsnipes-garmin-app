@@ -37,7 +37,7 @@ class MainMenuDelegate extends WatchUi.BehaviorDelegate {
         }
 
         var settingsView = new SettingsInfoView();
-        WatchUi.pushView(settingsView, new SettingsInfoDelegate(), WatchUi.SLIDE_LEFT);
+        WatchUi.pushView(settingsView, new SettingsInfoDelegate(settingsView), WatchUi.SLIDE_LEFT);
         return true;
     }
 }

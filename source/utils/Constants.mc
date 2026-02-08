@@ -31,9 +31,12 @@ module Constants {
     const STORAGE_SESSION_IDS = "topsnipes_session_ids";
     const STORAGE_PENDING_SYNC = "topsnipes_pending_syncs";
     const STORAGE_ACTIVE_SESSION = "topsnipes_active_session";
+    const STORAGE_LAST_TOTAL_MS = "topsnipes_last_total_ms";
+    const STORAGE_LAST_SHOT_COUNT = "topsnipes_last_shot_count";
 
     const MAX_HISTORY = 120;
     const MAX_SPLITS_TO_DRAW = 5;
+    const MAX_SHOTS_LIMIT = 120;
 
     const DEFAULT_COUNTDOWN_SECONDS = 10;
     const DEFAULT_DEBOUNCE_MS = 150;

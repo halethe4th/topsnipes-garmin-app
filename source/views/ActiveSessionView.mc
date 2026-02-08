@@ -49,6 +49,7 @@ class ActiveSessionView extends WatchUi.View {
         if (manager.gpsIsVerified()) {
             gpsColor = Constants.COLOR_ACCENT;
             gpsProgress = 100;
+            gpsStatus = "";
         }
 
         var statusText = Rez.Strings.StateReady;
@@ -91,30 +92,64 @@ class ActiveSessionView extends WatchUi.View {
                 detailLine2 = Rez.Strings.ActiveLastSplit + ": " + FormatUtils.formatMillis(finalSplit);
             }
         }
+        if (primaryText.length() > 8) {
+            primaryFont = Graphics.FONT_LARGE;
+        }
 
-        dc.setColor(Constants.COLOR_SUBTLE, Constants.COLOR_BG);
-        dc.drawText(centerX, 2, Graphics.FONT_XTINY, gpsStatus, Graphics.TEXT_JUSTIFY_CENTER);
-        drawProgressBar(dc, 20, 14, width - 40, 4, gpsProgress, gpsColor);
+        if (gpsStatus.length() > 0) {
+            dc.setColor(Constants.COLOR_SUBTLE, Constants.COLOR_BG);
+            dc.drawText(centerX, 1, Graphics.FONT_XTINY, gpsStatus, Graphics.TEXT_JUSTIFY_CENTER);
+        }
+        drawProgressBar(dc, 20, 12, width - 40, 4, gpsProgress, gpsColor);
 
         dc.setColor(Constants.COLOR_TEXT, Constants.COLOR_BG);
         dc.drawText(centerX, 22, Graphics.FONT_SMALL, Rez.Strings.ActiveTitle, Graphics.TEXT_JUSTIFY_CENTER);
 
         dc.setColor(Constants.COLOR_SUBTLE, Constants.COLOR_BG);
-        dc.fillRectangle(20, 40, width - 40, 1);
+        dc.fillRectangle(20, 35, width - 40, 1);
 
         dc.setColor(statusColor, Constants.COLOR_BG);
-        dc.drawText(centerX, 48, Graphics.FONT_XTINY, statusText, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, 40, Graphics.FONT_XTINY, statusText, Graphics.TEXT_JUSTIFY_CENTER);
+
+        var primaryCenterY = centerY;
+        if (state == Constants.SessionState.STATE_COUNTDOWN) {
+            primaryCenterY = centerY + 8;
+        }
 
         dc.setColor(Constants.COLOR_TEXT, Constants.COLOR_BG);
-        dc.drawText(centerX, centerY - 8, primaryFont, primaryText, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        dc.drawText(centerX, primaryCenterY, primaryFont, primaryText, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
 
-        var detailY = centerY + 38;
+        var primarySize = dc.getTextDimensions(primaryText, primaryFont);
+        var primaryTop = primaryCenterY - (primarySize[1] / 2);
+        var primaryBottom = primaryCenterY + (primarySize[1] / 2);
+
+        if (state == Constants.SessionState.STATE_COUNTDOWN) {
+            var readyY = primaryTop - 18;
+            if (readyY < 54) {
+                readyY = 54;
+            }
+            dc.setColor(Constants.COLOR_TEXT, Constants.COLOR_BG);
+            dc.drawText(centerX, readyY, Graphics.FONT_TINY, detailLine1, Graphics.TEXT_JUSTIFY_CENTER);
+
+            var weaponY = primaryBottom + 10;
+            if (weaponY > height - 10) {
+                weaponY = height - 10;
+            }
+            dc.setColor(Constants.COLOR_SUBTLE, Constants.COLOR_BG);
+            dc.drawText(centerX, weaponY, Graphics.FONT_XTINY, detailLine2, Graphics.TEXT_JUSTIFY_CENTER);
+            return;
+        }
+
+        var detailY = primaryBottom + 10;
+        if (detailY > height - 24) {
+            detailY = height - 24;
+        }
         dc.setColor(Constants.COLOR_TEXT, Constants.COLOR_BG);
-        dc.drawText(centerX, detailY, Graphics.FONT_MEDIUM, detailLine1, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, detailY, Graphics.FONT_SMALL, detailLine1, Graphics.TEXT_JUSTIFY_CENTER);
 
         var detailTwoY = detailY + 16;
-        if (detailTwoY > height - 12) {
-            detailTwoY = height - 12;
+        if (detailTwoY > height - 8) {
+            detailTwoY = height - 8;
         }
         dc.setColor(Constants.COLOR_SUBTLE, Constants.COLOR_BG);
         dc.drawText(centerX, detailTwoY, Graphics.FONT_XTINY, detailLine2, Graphics.TEXT_JUSTIFY_CENTER);

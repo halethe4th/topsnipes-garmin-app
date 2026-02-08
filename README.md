@@ -10,6 +10,9 @@ Production Garmin Connect IQ watch app for TopSnipes shot timing.
 - Firebase sync queue to `garminSessionUpload`
 - One-shot GPS tagging for range location
 - Activity recording save to Garmin Connect
+- FIT contributor fields: shot count, average split, gps verified
+- In-app settings editor for countdown/sensitivity/debounce/max shots/haptics
+- App glance summary (last total + pending sync count)
 
 ## Repository Layout
 - `manifest.xml` - app metadata, permissions, products
@@ -22,6 +25,9 @@ Production Garmin Connect IQ watch app for TopSnipes shot timing.
 - `source/SyncManager.mc` - HTTPS sync worker/backoff
 - `source/views/` - app views
 - `source/delegates/` - behavior delegates
+- `source/tests/` - unit test functions annotated with `(:test)`
+- `resources-round-240x240/` - compact string overrides for smaller round displays
+- `resources-round-416x416/` - large round display string overrides
 
 ## Local Build
 Mac/Linux:
@@ -44,3 +50,14 @@ Copy-Item .\local.build.ps1.example .\local.build.ps1
 - Never commit private signing keys.
 - This repo ignores `*.pem`, `*.key`, `developer_key`, and `developer_key.*`.
 - Keep signing key local-only; publishing updates requires the same key.
+
+## QA Checklist
+- Build with strict type checks (`project.typecheck = strict`)
+- Validate controls on simulator:
+  - `START/ENTER`: start countdown, stop session, open review
+  - `LAP/ESC` while live: split capture
+  - `UP/MENU` hold from idle/complete: open settings
+  - `START` during countdown: cancel countdown back to `READY`
+- Validate no text overlap on `epix2` and `fenix7` simulator targets
+- Validate session stop no longer crashes storage serialization
+- Validate GPS remains non-blocking (session can start while GPS acquires)
