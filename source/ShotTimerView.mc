@@ -12,8 +12,8 @@ class ShotTimerView extends WatchUi.View {
     const MIN_SHOT_INTERVAL_MS = 80;
     const MAX_SESSION_HISTORY = 75;
     const APP_DATA_VERSION = 2;
-    const SAFE_TOP = 46;
-    const SAFE_BOTTOM = 42;
+    const SAFE_TOP = 54;
+    const SAFE_BOTTOM = 24;
     const GPS_GOOD_ACCURACY_METERS = 35;
 
     const STATE_IDLE = 0;
@@ -56,6 +56,29 @@ class ShotTimerView extends WatchUi.View {
         "Custom Rifle",
         "Custom Shotgun"
     ];
+    var _weaponShortOptions = [
+        "M17 9mm",
+        "M18 9mm",
+        "G19 9mm",
+        "G17 9mm",
+        "M9 9mm",
+        "1911 .45",
+        "P320 XCarry",
+        "M4A1 5.56",
+        "M16A4 5.56",
+        "M27 IAR 5.56",
+        "MK18 5.56",
+        "HK416 5.56",
+        "M110 7.62",
+        "M40A6 7.62",
+        "M249 5.56",
+        "M240B 7.62",
+        "M1014 12ga",
+        "M590 12ga",
+        "Custom HG",
+        "Custom Rifle",
+        "Custom SG"
+    ];
     var _weaponIndex = 0;
 
     var _stats = null;
@@ -68,6 +91,7 @@ class ShotTimerView extends WatchUi.View {
     var _gpsAccuracyMeters = null;
     var _gpsMonitoring = false;
     var _gpsDeniedNoticeUntilMs = 0;
+    var _gpsSpinnerFrame = 0;
 
     function initialize() {
         View.initialize();
@@ -86,71 +110,82 @@ class ShotTimerView extends WatchUi.View {
     }
 
     function onTick() {
+        _gpsSpinnerFrame = (_gpsSpinnerFrame + 1) % 4;
+        if (!_gpsVerified && _gpsMonitoring) {
+            _gpsStatusText = buildGpsStatusText();
+        }
         WatchUi.requestUpdate();
     }
 
     function handleKey(key) {
-        if (key == WatchUi.KEY_MENU || key == WatchUi.KEY_DOWN) {
-            if (_state == STATE_FINISHED) {
-                _summaryPage = _summaryPage - 1;
-                if (_summaryPage < 0) {
-                    _summaryPage = _summaryPages - 1;
+        try {
+            if (key == WatchUi.KEY_MENU || key == WatchUi.KEY_DOWN) {
+                if (_state == STATE_FINISHED) {
+                    _summaryPage = _summaryPage - 1;
+                    if (_summaryPage < 0) {
+                        _summaryPage = _summaryPages - 1;
+                    }
+                    WatchUi.requestUpdate();
+                    return true;
                 }
+                if (_state == STATE_IDLE || _state == STATE_FINISHED) {
+                    cycleWeapon();
+                    return true;
+                }
+                return true;
+            }
+
+            if (key == WatchUi.KEY_START) {
+                if (_state == STATE_RUNNING) {
+                    finishSession();
+                    return true;
+                }
+                if (_state == STATE_IDLE || _state == STATE_FINISHED) {
+                    startCountdown();
+                    return true;
+                }
+            }
+
+            if (key == WatchUi.KEY_ENTER) {
+                if (_state == STATE_COUNTDOWN) {
+                    return true;
+                }
+
+                if (_state == STATE_RUNNING) {
+                    registerShot();
+                    return true;
+                }
+
+                if (_state == STATE_IDLE || _state == STATE_FINISHED) {
+                    startCountdown();
+                    return true;
+                }
+            }
+
+            if (key == WatchUi.KEY_ESC) {
+                if (_state == STATE_RUNNING || _state == STATE_COUNTDOWN) {
+                    finishSession();
+                    return true;
+                }
+
+                if (_state == STATE_FINISHED) {
+                    resetSession();
+                    return true;
+                }
+                return true;
+            }
+
+            if (key == WatchUi.KEY_UP && _state == STATE_FINISHED) {
+                _summaryPage = (_summaryPage + 1) % _summaryPages;
                 WatchUi.requestUpdate();
                 return true;
             }
-            if (_state == STATE_IDLE || _state == STATE_FINISHED) {
-                cycleWeapon();
-                return true;
-            }
-        }
-
-        if (key == WatchUi.KEY_START) {
-            if (_state == STATE_RUNNING) {
-                finishSession();
-                return true;
-            }
-            if (_state == STATE_IDLE || _state == STATE_FINISHED) {
-                startCountdown();
-                return true;
-            }
-        }
-
-        if (key == WatchUi.KEY_ENTER) {
-            if (_state == STATE_COUNTDOWN) {
-                return true;
-            }
-
-            if (_state == STATE_RUNNING) {
-                registerShot();
-                return true;
-            }
-
-            if (_state == STATE_IDLE || _state == STATE_FINISHED) {
-                startCountdown();
-                return true;
-            }
-        }
-
-        if (key == WatchUi.KEY_ESC) {
-            if (_state == STATE_RUNNING || _state == STATE_COUNTDOWN) {
-                finishSession();
-                return true;
-            }
-
-            if (_state == STATE_FINISHED) {
-                resetSession();
-                return true;
-            }
-        }
-
-        if (key == WatchUi.KEY_UP && _state == STATE_FINISHED) {
-            _summaryPage = (_summaryPage + 1) % _summaryPages;
-            WatchUi.requestUpdate();
+        } catch (ex) {
+            System.println("Key handler error: " + ex.toString());
             return true;
         }
 
-        return false;
+        return true;
     }
 
     function startCountdown() {
@@ -463,13 +498,13 @@ class ShotTimerView extends WatchUi.View {
             drawBigTimer(dc, centerX, h, formatMs(elapsed));
 
             var shotLine = "Shots " + _shotTimes.size().toString();
-            dc.drawText(centerX, h - (SAFE_BOTTOM + 36), Graphics.FONT_TINY, shotLine, Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(centerX, (h / 2) + 46, Graphics.FONT_TINY, shotLine, Graphics.TEXT_JUSTIFY_CENTER);
 
             var splitText = "Split --";
             if (_splitTimes.size() > 0) {
                 splitText = "Last " + formatMs(_splitTimes[_splitTimes.size() - 1]);
             }
-            dc.drawText(centerX, h - (SAFE_BOTTOM + 20), Graphics.FONT_TINY, splitText, Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(centerX, (h / 2) + 62, Graphics.FONT_TINY, splitText, Graphics.TEXT_JUSTIFY_CENTER);
             drawFooter(dc, "ENTER=SHOT  ESC=END");
             return;
         }
@@ -481,16 +516,15 @@ class ShotTimerView extends WatchUi.View {
         }
 
         drawBigTimer(dc, centerX, h, "READY");
-        dc.drawText(centerX, h - (SAFE_BOTTOM + 36), Graphics.FONT_TINY, "Weapon " + _sessionName, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(centerX, h - (SAFE_BOTTOM + 20), Graphics.FONT_TINY, _gpsStatusText, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, (h / 2) + 46, Graphics.FONT_TINY, "Weapon " + _weaponShortOptions[_weaponIndex], Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, (h / 2) + 62, Graphics.FONT_TINY, _gpsStatusText, Graphics.TEXT_JUSTIFY_CENTER);
         if (_gpsDeniedNoticeUntilMs > System.getTimer()) {
-            dc.drawText(centerX, h - (SAFE_BOTTOM + 6), Graphics.FONT_XTINY, "WAIT FOR GPS VERIFY", Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(centerX, (h / 2) + 78, Graphics.FONT_XTINY, "WAIT FOR GPS VERIFY", Graphics.TEXT_JUSTIFY_CENTER);
         }
-        drawFooter(dc, "START/ENTER=GO");
+        drawFooter(dc, "DOWN=WEAPON  START=GO");
     }
 
     function drawTitle(dc, x) {
-        dc.drawText(x, SAFE_TOP - 14, Graphics.FONT_TINY, "TOPSNIPES", Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(x, SAFE_TOP, Graphics.FONT_SMALL, "SHOT TIMER", Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawLine(26, SAFE_TOP + 10, dc.getWidth() - 26, SAFE_TOP + 10);
     }
@@ -665,10 +699,26 @@ class ShotTimerView extends WatchUi.View {
             }
             return "GPS VERIFIED";
         }
+        if (_gpsMonitoring && _gpsAccuracyMeters == null) {
+            return "GPS ACQUIRING" + spinnerDots();
+        }
         if (_gpsAccuracyMeters != null) {
             return "GPS NOT VERIFIED (" + Math.round(_gpsAccuracyMeters).toString() + "m)";
         }
         return "GPS NOT VERIFIED";
+    }
+
+    function spinnerDots() {
+        if (_gpsSpinnerFrame == 0) {
+            return "";
+        }
+        if (_gpsSpinnerFrame == 1) {
+            return ".";
+        }
+        if (_gpsSpinnerFrame == 2) {
+            return "..";
+        }
+        return "...";
     }
 
     function makeStorageSafeSession(stats) {
