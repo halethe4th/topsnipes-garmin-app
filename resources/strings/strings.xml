@@ -1,4 +1,66 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <resources>
-  <string id="AppName">TopSnipes Shooting</string>
+  <string id="AppName">TopSnipes Shot Timer</string>
+
+  <string id="MenuNewSession">New Session</string>
+  <string id="MenuHistory">History</string>
+  <string id="MenuSync">Sync</string>
+  <string id="MenuSettings">Settings</string>
+  <string id="MainMenuHint">UP/DOWN scroll • START select</string>
+
+  <string id="ConfigTitle">Session Config</string>
+  <string id="ConfigWeapon">Weapon</string>
+  <string id="ConfigDrill">Drill</string>
+  <string id="ConfigMaxShots">Max Shots</string>
+  <string id="ConfigUnlimited">Unlimited</string>
+  <string id="ConfigStart">Ready</string>
+  <string id="ConfigStartValue">Press START</string>
+  <string id="ConfigHint">MENU move row • UP/DOWN change</string>
+
+  <string id="ActiveTitle">Shot Timer</string>
+  <string id="ActiveNoSession">No Session</string>
+  <string id="ActiveLastSplit">Last Split</string>
+  <string id="ActiveLastSplitNone">Last Split: --</string>
+  <string id="ActiveHint">START start/stop • LAP shot</string>
+  <string id="ActiveSelected">selected</string>
+  <string id="GpsStatusOff">gps off</string>
+  <string id="GpsStatusAcquiring">gps acquiring</string>
+  <string id="GpsStatusVerified">gps verified</string>
+  <string id="GpsStatusUnavailable">gps unavailable</string>
+  <string id="GpsStatusUnsupported">gps unsupported</string>
+  <string id="GpsStatusTimeout">gps timeout</string>
+
+  <string id="StateReady">Ready</string>
+  <string id="StateCountdown">Countdown</string>
+  <string id="StateGetReady">Get Ready</string>
+  <string id="StateListening">Live</string>
+  <string id="StateComplete">Complete</string>
+
+  <string id="ReviewTitle">Session Review</string>
+  <string id="ReviewSplitHeader">Splits</string>
+  <string id="ReviewHint">UP/DOWN scroll • START sync</string>
+  <string id="ReviewAvgSplit">Avg split</string>
+  <string id="ReviewHintCompact">START sync • UP/DOWN scroll</string>
+
+  <string id="HistoryTitle">History</string>
+  <string id="HistoryEmpty">No sessions yet</string>
+  <string id="HistoryHint">UP/DOWN scroll • START open</string>
+
+  <string id="SyncTitle">Sync Status</string>
+  <string id="SyncUnavailable">Sync unavailable</string>
+  <string id="SyncPendingLabel">Pending sessions</string>
+  <string id="SyncHint">START sync now • BACK return</string>
+
+  <string id="SettingsTitle">Settings</string>
+  <string id="SettingsHintLine1">Adjust sensitivity,</string>
+  <string id="SettingsHintLine2">countdown, and haptics</string>
+  <string id="SettingsHintLine3">in Garmin Connect app</string>
+
+  <string id="SettingSensitivityTitle">Sensitivity</string>
+  <string id="SettingDebounceTitle">Debounce (ms)</string>
+  <string id="SettingCountdownTitle">Countdown (sec)</string>
+  <string id="SettingMaxShotsTitle">Max Shots (0=unlimited)</string>
+  <string id="SettingAutoStopTitle">Auto Stop at Max</string>
+  <string id="SettingHapticShotTitle">Haptic on Shot</string>
+  <string id="SettingHapticStartTitle">Haptic on Start</string>
 </resources>

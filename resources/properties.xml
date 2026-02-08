@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
+    <properties>
+        <property id="sensitivity" type="number">5</property>
+        <property id="debounceMs" type="number">150</property>
+        <property id="countdownSecs" type="number">10</property>
+        <property id="maxShots" type="number">0</property>
+        <property id="autoStopEnabled" type="boolean">true</property>
+        <property id="hapticOnShot" type="boolean">true</property>
+        <property id="hapticOnStart" type="boolean">true</property>
+    </properties>
+
+    <settings>
+        <setting propertyKey="@Properties.sensitivity" title="@Strings.SettingSensitivityTitle">
+            <settingConfig type="numeric" />
+        </setting>
+        <setting propertyKey="@Properties.debounceMs" title="@Strings.SettingDebounceTitle">
+            <settingConfig type="numeric" />
+        </setting>
+        <setting propertyKey="@Properties.countdownSecs" title="@Strings.SettingCountdownTitle">
+            <settingConfig type="numeric" />
+        </setting>
+        <setting propertyKey="@Properties.maxShots" title="@Strings.SettingMaxShotsTitle">
+            <settingConfig type="numeric" />
+        </setting>
+        <setting propertyKey="@Properties.autoStopEnabled" title="@Strings.SettingAutoStopTitle">
+            <settingConfig type="boolean" />
+        </setting>
+        <setting propertyKey="@Properties.hapticOnShot" title="@Strings.SettingHapticShotTitle">
+            <settingConfig type="boolean" />
+        </setting>
+        <setting propertyKey="@Properties.hapticOnStart" title="@Strings.SettingHapticStartTitle">
+            <settingConfig type="boolean" />
+        </setting>
+    </settings>
+</resources>

@@ -6,6 +6,9 @@ build/
 *.apk
 *.tmp
 *.pem
+*.key
+developer_key
+developer_key.*
 
 # macOS
 .DS_Store

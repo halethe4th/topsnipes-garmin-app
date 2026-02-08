@@ -1,30 +1,45 @@
-using Toybox.Application;
-using Toybox.WatchUi;
+import Toybox.Application;
+import Toybox.Sensor;
+import Toybox.WatchUi;
 
 class TopSnipesApp extends Application.AppBase {
+    var _storage as StorageManager;
+    var _sessionManager as SessionManager;
+    var _syncManager as SyncManager;
+
     function initialize() {
         AppBase.initialize();
+
+        _storage = new StorageManager();
+        _sessionManager = new SessionManager(_storage);
+        _syncManager = new SyncManager(_storage);
+
+        AppContext.initialize(_sessionManager, _storage, _syncManager);
     }
 
-    function getInitialView() {
-        var view = new ShotTimerView();
-        return [view, new ShotTimerDelegate(view)];
-    }
-}
-
-class ShotTimerDelegate extends WatchUi.InputDelegate {
-    var _view;
-
-    function initialize(view) {
-        InputDelegate.initialize();
-        _view = view;
+    function onStart(state as Dictionary or Null) as Void {
+        _sessionManager.restoreActiveSessionIfAny();
+        _syncManager.checkPendingSyncs();
     }
 
-    function onKey(keyEvent) {
-        return _view.handleKey(keyEvent.getKey());
+    function onStop(state as Dictionary or Null) as Void {
+        if (Sensor has :unregisterSensorDataListener) {
+            try {
+                Sensor.unregisterSensorDataListener();
+            } catch (ex) {
+                // no-op
+            }
+        }
+        _sessionManager.saveActiveSession();
     }
 
-    function onMenu() {
-        return _view.openSettingsFromMenu();
+    function getInitialView() as [WatchUi.Views] or [WatchUi.Views, WatchUi.InputDelegates] {
+        var view = new MainMenuView();
+        var delegate = new MainMenuDelegate(view);
+        return [view, delegate];
+    }
+
+    function getSettingsView() as [WatchUi.Views, WatchUi.InputDelegates] or Null {
+        return null;
     }
 }

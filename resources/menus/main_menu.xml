@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
+    <menu id="MainMenu">
+        <menu-item id="newSession" label="@Strings.MenuNewSession" />
+        <menu-item id="history" label="@Strings.MenuHistory" />
+        <menu-item id="sync" label="@Strings.MenuSync" />
+        <menu-item id="settings" label="@Strings.MenuSettings" />
+    </menu>
+</resources>

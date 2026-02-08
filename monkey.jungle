@@ -1,3 +1,4 @@
 project.manifest = manifest.xml
+project.typecheck = strict
 base.sourcePath = source
 base.resourcePath = resources
