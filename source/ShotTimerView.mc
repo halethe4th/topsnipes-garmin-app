@@ -12,8 +12,6 @@ class ShotTimerView extends WatchUi.View {
     const MIN_SHOT_INTERVAL_MS = 80;
     const MAX_SESSION_HISTORY = 75;
     const APP_DATA_VERSION = 3;
-    const SAFE_TOP = 56;
-    const SAFE_BOTTOM = 50;
     const GPS_GOOD_ACCURACY_METERS = 35;
 
     const STATE_IDLE = 0;
@@ -150,7 +148,7 @@ class ShotTimerView extends WatchUi.View {
         }
 
         if (_state == STATE_IDLE) {
-            if (key == WatchUi.KEY_UP && _stats != null) {
+            if (isUpInput(key) && _stats != null) {
                 _state = STATE_FINISHED;
                 _summaryPage = 0;
                 WatchUi.requestUpdate();
@@ -160,14 +158,14 @@ class ShotTimerView extends WatchUi.View {
         }
 
         if (_state == STATE_COUNTDOWN) {
-            if (isEscInput(key)) {
+            if (isEscInput(key) || isLapInput(key)) {
                 resetSession();
             }
             return true;
         }
 
         if (_state == STATE_RUNNING) {
-            if (isLapInput(key) || key == WatchUi.KEY_ESC) {
+            if (isLapInput(key)) {
                 registerShot();
                 return true;
             }
@@ -209,6 +207,10 @@ class ShotTimerView extends WatchUi.View {
         if (_state == STATE_RUNNING || _state == STATE_COUNTDOWN) {
             return true;
         }
+        if (_state == STATE_SETTINGS) {
+            closeSettings();
+            return true;
+        }
         openSettings();
         return true;
     }
@@ -223,12 +225,12 @@ class ShotTimerView extends WatchUi.View {
     }
 
     function handleSettingsKey(key) {
-        if (isEscInput(key) || key == WatchUi.KEY_MENU) {
+        if (isEscInput(key)) {
             closeSettings();
             return true;
         }
 
-        if (key == WatchUi.KEY_UP) {
+        if (isUpInput(key)) {
             _settingsIndex -= 1;
             if (_settingsIndex < 0) {
                 _settingsIndex = 4;
@@ -598,13 +600,11 @@ class ShotTimerView extends WatchUi.View {
 
         if (_state == STATE_SETTINGS) {
             drawSettings(dc, w, h);
-            drawFooter(dc, "");
             return;
         }
 
         if (_state == STATE_FINISHED && _stats != null) {
             drawSummary(dc, w, h, _stats);
-            drawFooter(dc, "");
             return;
         }
 
@@ -622,57 +622,47 @@ class ShotTimerView extends WatchUi.View {
                 msRemaining = 0;
             }
             var seconds = Math.floor((msRemaining + 999) / 1000);
-            dc.drawText(centerX, centerY - 66, Graphics.FONT_SMALL, "Get Ready", Graphics.TEXT_JUSTIFY_CENTER);
-            dc.drawText(centerX, centerY - 22, Graphics.FONT_LARGE, seconds.toString(), Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(centerX, centerY - 52, Graphics.FONT_SMALL, "GET READY", Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(centerX, centerY - 6, Graphics.FONT_LARGE, seconds.toString(), Graphics.TEXT_JUSTIFY_CENTER);
             drawCountdownProgress(dc, w, msRemaining);
-            drawFooter(dc, "");
             return;
         }
 
         if (_state == STATE_RUNNING) {
             var elapsed = System.getTimer() - _sessionStartMs;
-            drawBigTimer(dc, centerX, centerY - 42, formatMs(elapsed));
+            drawBigTimer(dc, centerX, centerY - 38, formatMs(elapsed));
 
             var shotLine = "Shots " + _shotTimes.size().toString();
-            dc.drawText(centerX, h - 104, Graphics.FONT_TINY, shotLine, Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(centerX, centerY + 20, Graphics.FONT_TINY, shotLine, Graphics.TEXT_JUSTIFY_CENTER);
 
             var splitText = "Split --";
             if (_splitTimes.size() > 0) {
                 splitText = "Last " + formatMs(_splitTimes[_splitTimes.size() - 1]);
             }
-            dc.drawText(centerX, h - 88, Graphics.FONT_TINY, splitText, Graphics.TEXT_JUSTIFY_CENTER);
-            var runningGpsLine = gpsBodyStatusText();
-            if (runningGpsLine != "") {
-                dc.drawText(centerX, h - 72, Graphics.FONT_XTINY, runningGpsLine, Graphics.TEXT_JUSTIFY_CENTER);
-            }
-            drawFooter(dc, "");
+            dc.drawText(centerX, centerY + 42, Graphics.FONT_TINY, splitText, Graphics.TEXT_JUSTIFY_CENTER);
             return;
         }
 
-        drawBigTimer(dc, centerX, centerY - 42, "Ready");
-        dc.drawText(centerX, h - 104, Graphics.FONT_TINY, _weaponShortOptions[_weaponIndex], Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(centerX, h - 92, Graphics.FONT_XTINY, "selected", Graphics.TEXT_JUSTIFY_CENTER);
-        var idleGpsLine = gpsBodyStatusText();
-        if (idleGpsLine != "") {
-            dc.drawText(centerX, h - 76, Graphics.FONT_XTINY, idleGpsLine, Graphics.TEXT_JUSTIFY_CENTER);
-        }
+        drawBigTimer(dc, centerX, centerY - 38, "Ready");
+        dc.drawText(centerX, centerY + 20, Graphics.FONT_TINY, trimForWatch(_weaponShortOptions[_weaponIndex], 16), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, centerY + 40, Graphics.FONT_XTINY, "selected", Graphics.TEXT_JUSTIFY_CENTER);
         if (_weaponNoticeUntilMs > System.getTimer()) {
-            dc.drawText(centerX, h - 64, Graphics.FONT_XTINY, "WEAPON UPDATED", Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(centerX, centerY + 58, Graphics.FONT_XTINY, "weapon updated", Graphics.TEXT_JUSTIFY_CENTER);
         }
-        drawFooter(dc, "");
     }
 
     function drawTitle(dc, x) {
         drawGpsAcquireBar(dc);
-        dc.drawText(x, SAFE_TOP + 4, Graphics.FONT_MEDIUM, "Shot Timer", Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawLine(26, SAFE_TOP + 16, dc.getWidth() - 26, SAFE_TOP + 16);
+        dc.drawText(x, 36, Graphics.FONT_XTINY, "TOPSNIPES", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(x, 50, Graphics.FONT_SMALL, "Shot Timer", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawLine(24, 64, dc.getWidth() - 24, 64);
     }
 
     function drawGpsAcquireBar(dc) {
         var barX = 30;
-        var barY = SAFE_TOP - 18;
+        var barY = 18;
         var barW = dc.getWidth() - 60;
-        var barH = 8;
+        var barH = 6;
 
         dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_BLACK);
         dc.fillRoundedRectangle(barX, barY, barW, barH, 3);
@@ -699,20 +689,21 @@ class ShotTimerView extends WatchUi.View {
     }
 
     function drawTopGpsAcquireMessage(dc, centerX) {
-        if (!_gpsMonitoring || _gpsVerified) {
+        if (!_gpsMonitoring) {
+            dc.drawText(centerX, 4, Graphics.FONT_XTINY, "gps unavailable", Graphics.TEXT_JUSTIFY_CENTER);
             return;
         }
-        if (_gpsAccuracyMeters != null) {
+        if (_gpsVerified) {
             return;
         }
-        dc.drawText(centerX, 2, Graphics.FONT_XTINY, "gps acquiring", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, 4, Graphics.FONT_XTINY, "acquiring gps", Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     function drawCountdownProgress(dc, width, msRemaining) {
         var barX = 36;
-        var barY = dc.getHeight() - 96;
+        var barY = dc.getHeight() / 2 + 22;
         var barW = width - 72;
-        var barH = 8;
+        var barH = 6;
         var elapsedRatio = 1.0 - ((msRemaining * 1.0) / (_countdownSeconds * 1000.0));
         if (elapsedRatio < 0) {
             elapsedRatio = 0;
@@ -732,28 +723,15 @@ class ShotTimerView extends WatchUi.View {
     }
 
     function drawSettings(dc, width, height) {
-        var y = 36;
-        dc.drawText(width / 2, y, Graphics.FONT_SMALL, "SETTINGS", Graphics.TEXT_JUSTIFY_CENTER);
-
-        var rows = [
-            "Countdown: " + _countdownSeconds.toString() + "s",
-            "Weapon: " + _weaponShortOptions[_weaponIndex],
-            "Favorite: " + _weaponShortOptions[_favoriteWeaponIndex],
-            "Use Favorite: " + boolLabel(_useFavoriteWeapon),
-            "Clear Session Logs"
-        ];
-
-        for (var i = 0; i < rows.size(); i += 1) {
-            var rowY = y + 24 + (i * 22);
-            var prefix = "  ";
-            if (i == _settingsIndex) {
-                prefix = "> ";
-                dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_BLACK);
-                dc.fillRoundedRectangle(18, rowY - 8, width - 36, 15, 3);
-                dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
-            }
-            dc.drawText(width / 2, rowY, Graphics.FONT_XTINY, trimForWatch(prefix + rows[i], 26), Graphics.TEXT_JUSTIFY_CENTER);
-        }
+        var centerX = width / 2;
+        dc.drawText(centerX, 36, Graphics.FONT_SMALL, "SETTINGS", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawLine(24, 50, width - 24, 50);
+        dc.drawText(centerX, 72, Graphics.FONT_XTINY, (_settingsIndex + 1).toString() + " / 5", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, 126, Graphics.FONT_TINY, trimForWatch(settingLabel(_settingsIndex), 24), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, 164, Graphics.FONT_SMALL, trimForWatch(settingValue(_settingsIndex), 16), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, 216, Graphics.FONT_XTINY, "UP/DOWN NAV", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, 234, Graphics.FONT_XTINY, "START SELECT", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, 252, Graphics.FONT_XTINY, "MENU HOLD CLOSE", Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     function drawBrandMark(dc, x, y) {
@@ -804,10 +782,15 @@ class ShotTimerView extends WatchUi.View {
     }
 
     function drawBigTimer(dc, centerX, y, value) {
-        dc.drawText(centerX, y, Graphics.FONT_LARGE, value, Graphics.TEXT_JUSTIFY_CENTER);
+        var font = Graphics.FONT_LARGE;
+        if (value.length() > 7) {
+            font = Graphics.FONT_MEDIUM;
+        }
+        dc.drawText(centerX, y, font, value, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     function drawSummary(dc, width, height, stats) {
+        var centerX = width / 2;
         var title = "SUMMARY";
         var lines = [];
         if (_summaryPage == 0) {
@@ -817,8 +800,7 @@ class ShotTimerView extends WatchUi.View {
                 "Shots: " + stats[:shotCount].toString(),
                 "Draw: " + formatMaybe(stats[:drawToFirstMs]),
                 "Avg: " + formatMaybe(stats[:avgSplitMs]),
-                "Best: " + formatMaybe(stats[:bestSplitMs]),
-                "Elapsed: " + formatMs(stats[:elapsedMs])
+                "Best: " + formatMaybe(stats[:bestSplitMs])
             ];
         } else if (_summaryPage == 1) {
             title = "CADENCE";
@@ -827,8 +809,7 @@ class ShotTimerView extends WatchUi.View {
                 "Combat: " + stats[:cadenceBands][:combat].toString(),
                 "Control: " + stats[:cadenceBands][:control].toString(),
                 "Transitions: " + stats[:transitionCount].toString(),
-                "Burst: " + formatPercent(stats[:burstRatio]),
-                "Control: " + formatPercent(stats[:controlRatio])
+                "Burst: " + formatPercent(stats[:burstRatio])
             ];
         } else {
             title = "READINESS";
@@ -837,31 +818,28 @@ class ShotTimerView extends WatchUi.View {
                 "Last3: " + formatMaybe(stats[:lastThreeAvgMs]),
                 "Fatigue: " + formatSigned(stats[:fatigueDeltaMs]),
                 "Cadence: " + stats[:cadenceScore].toString(),
-                "Execution: " + stats[:executionScore].toString(),
                 "Ready: " + stats[:readinessScore].toString()
             ];
         }
 
-        dc.drawText(width / 2, SAFE_TOP + 2, Graphics.FONT_SMALL, title + " (" + (_summaryPage + 1).toString() + "/3)", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, 36, Graphics.FONT_SMALL, title + " (" + (_summaryPage + 1).toString() + "/3)", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawLine(24, 50, width - 24, 50);
         for (var i = 0; i < lines.size(); i += 1) {
-            drawSummaryLine(dc, width, i, lines[i]);
+            drawSummaryLine(dc, centerX, i, lines[i]);
         }
+        dc.drawText(centerX, height - 32, Graphics.FONT_XTINY, "UP/DOWN PAGES", Graphics.TEXT_JUSTIFY_CENTER);
     }
 
-    function drawSummaryLine(dc, width, idx, text) {
-        var y = SAFE_TOP + 28 + (idx * 16);
-        dc.drawText(width / 2, y, Graphics.FONT_XTINY, trimForWatch(text, 26), Graphics.TEXT_JUSTIFY_CENTER);
-    }
-
-    function drawFooter(dc, text) {
-        if (text == null || text == "") {
-            return;
-        }
-        dc.drawText(dc.getWidth() / 2, dc.getHeight() - SAFE_BOTTOM, Graphics.FONT_XTINY, text, Graphics.TEXT_JUSTIFY_CENTER);
+    function drawSummaryLine(dc, centerX, idx, text) {
+        var y = 100 + (idx * 24);
+        dc.drawText(centerX, y, Graphics.FONT_TINY, trimForWatch(text, 22), Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     function isStartStopInput(key) {
         if ((WatchUi has :KEY_START) && key == WatchUi.KEY_START) {
+            return true;
+        }
+        if (key == WatchUi.KEY_ENTER) {
             return true;
         }
         return false;
@@ -871,10 +849,7 @@ class ShotTimerView extends WatchUi.View {
         if ((WatchUi has :KEY_LAP) && key == WatchUi.KEY_LAP) {
             return true;
         }
-        if (key == WatchUi.KEY_ENTER) {
-            return true;
-        }
-        if (!(WatchUi has :KEY_LAP) && key == WatchUi.KEY_ESC) {
+        if (key == WatchUi.KEY_ESC) {
             return true;
         }
         return false;
@@ -885,24 +860,24 @@ class ShotTimerView extends WatchUi.View {
     }
 
     function isSummaryNextInput(key) {
-        return key == WatchUi.KEY_UP;
+        return key == WatchUi.KEY_DOWN;
     }
 
     function isSummaryPrevInput(key) {
-        if (key == WatchUi.KEY_DOWN) {
+        if (isUpInput(key)) {
             return true;
         }
         return false;
     }
 
-    function gpsBodyStatusText() {
-        if (!_gpsMonitoring) {
-            return "GPS UNAVAILABLE";
+    function isUpInput(key) {
+        if (key == WatchUi.KEY_UP) {
+            return true;
         }
-        if (!_gpsVerified && _gpsAccuracyMeters == null) {
-            return "";
+        if (key == WatchUi.KEY_MENU) {
+            return true;
         }
-        return _gpsStatusText;
+        return false;
     }
 
     function startGpsMonitoring() {
@@ -1120,6 +1095,38 @@ class ShotTimerView extends WatchUi.View {
             return fallback;
         }
         return value.toString();
+    }
+
+    function settingLabel(index) {
+        if (index == 0) {
+            return "Countdown";
+        }
+        if (index == 1) {
+            return "Weapon";
+        }
+        if (index == 2) {
+            return "Favorite";
+        }
+        if (index == 3) {
+            return "Use Favorite";
+        }
+        return "Clear Session Logs";
+    }
+
+    function settingValue(index) {
+        if (index == 0) {
+            return _countdownSeconds.toString() + "s";
+        }
+        if (index == 1) {
+            return _weaponShortOptions[_weaponIndex];
+        }
+        if (index == 2) {
+            return _weaponShortOptions[_favoriteWeaponIndex];
+        }
+        if (index == 3) {
+            return boolLabel(_useFavoriteWeapon);
+        }
+        return "PRESS START";
     }
 
     function boolLabel(value) {
