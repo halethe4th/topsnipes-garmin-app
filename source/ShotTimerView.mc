@@ -11,7 +11,7 @@ using Toybox.WatchUi;
 class ShotTimerView extends WatchUi.View {
     const MIN_SHOT_INTERVAL_MS = 80;
     const MAX_SESSION_HISTORY = 75;
-    const APP_DATA_VERSION = 2;
+    const APP_DATA_VERSION = 3;
     const SAFE_TOP = 54;
     const SAFE_BOTTOM = 24;
     const GPS_GOOD_ACCURACY_METERS = 35;
@@ -92,6 +92,8 @@ class ShotTimerView extends WatchUi.View {
     var _gpsMonitoring = false;
     var _gpsAcquireProgress = 0;
     var _weaponNoticeUntilMs = 0;
+    var _gpsVerifiedAtStart = false;
+    var _gpsAccuracyAtStart = null;
 
     function initialize() {
         View.initialize();
@@ -137,16 +139,39 @@ class ShotTimerView extends WatchUi.View {
             return true;
         }
 
-        if (isLapInput(key)) {
-            if (_state == STATE_RUNNING) {
-                registerShot();
+        if (_state == STATE_IDLE) {
+            if (isWeaponCycleInput(key) || isEscInput(key)) {
+                cycleWeapon();
                 return true;
             }
             return true;
         }
 
-        if (isWeaponCycleInput(key)) {
-            if (_state == STATE_FINISHED) {
+        if (_state == STATE_COUNTDOWN) {
+            if (isEscInput(key)) {
+                resetSession();
+            }
+            return true;
+        }
+
+        if (_state == STATE_RUNNING) {
+            if (isLapInput(key)) {
+                registerShot();
+                return true;
+            }
+            if (isEscInput(key)) {
+                finishSession();
+                return true;
+            }
+            return true;
+        }
+
+        if (_state == STATE_FINISHED) {
+            if (isEscInput(key)) {
+                resetSession();
+                return true;
+            }
+            if (isSummaryPrevInput(key)) {
                 _summaryPage = _summaryPage - 1;
                 if (_summaryPage < 0) {
                     _summaryPage = _summaryPages - 1;
@@ -154,28 +179,15 @@ class ShotTimerView extends WatchUi.View {
                 WatchUi.requestUpdate();
                 return true;
             }
-            if (_state == STATE_IDLE) {
-                cycleWeapon();
+            if (isSummaryNextInput(key)) {
+                _summaryPage = (_summaryPage + 1) % _summaryPages;
+                WatchUi.requestUpdate();
                 return true;
             }
-            return true;
-        }
-
-        if (isEscInput(key)) {
-            if (_state == STATE_FINISHED) {
-                resetSession();
+            if (isWeaponCycleInput(key)) {
+                startCountdown();
                 return true;
             }
-            if (_state == STATE_IDLE) {
-                cycleWeapon();
-                return true;
-            }
-            return true;
-        }
-
-        if (isSummaryNextInput(key) && _state == STATE_FINISHED) {
-            _summaryPage = (_summaryPage + 1) % _summaryPages;
-            WatchUi.requestUpdate();
             return true;
         }
 
@@ -190,6 +202,8 @@ class ShotTimerView extends WatchUi.View {
         _lastShotRegisteredMs = 0;
         _stats = null;
         _summaryPage = 0;
+        _gpsVerifiedAtStart = false;
+        _gpsAccuracyAtStart = null;
         _state = STATE_COUNTDOWN;
         _countdownEndMs = System.getTimer() + (_countdownSeconds * 1000);
         WatchUi.requestUpdate();
@@ -246,6 +260,8 @@ class ShotTimerView extends WatchUi.View {
         _drawToFirstMs = null;
         _stats = null;
         _summaryPage = 0;
+        _gpsVerifiedAtStart = false;
+        _gpsAccuracyAtStart = null;
         stopFitRecording(false);
         WatchUi.requestUpdate();
     }
@@ -289,6 +305,10 @@ class ShotTimerView extends WatchUi.View {
             :shotCount => totalShots,
             :elapsedMs => elapsed,
             :drawToFirstMs => _drawToFirstMs,
+            :gpsVerifiedAtStart => _gpsVerifiedAtStart,
+            :gpsAccuracyAtStartM => _gpsAccuracyAtStart,
+            :gpsVerifiedAtEnd => _gpsVerified,
+            :gpsAccuracyAtEndM => _gpsAccuracyMeters,
             :avgSplitMs => avgSplit,
             :bestSplitMs => minVal(_splitTimes),
             :worstSplitMs => maxVal(_splitTimes),
@@ -476,12 +496,14 @@ class ShotTimerView extends WatchUi.View {
             if (msRemaining <= 0) {
                 _state = STATE_RUNNING;
                 _sessionStartMs = System.getTimer();
+                _gpsVerifiedAtStart = _gpsVerified;
+                _gpsAccuracyAtStart = _gpsAccuracyMeters;
                 startFitRecording();
                 msRemaining = 0;
             }
             var seconds = Math.floor((msRemaining + 999) / 1000);
-            dc.drawText(centerX, centerY - 58, Graphics.FONT_SMALL, "GET READY", Graphics.TEXT_JUSTIFY_CENTER);
-            dc.drawText(centerX, centerY - 16, Graphics.FONT_LARGE, seconds.toString(), Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(centerX, centerY - 66, Graphics.FONT_SMALL, "GET READY", Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(centerX, centerY - 22, Graphics.FONT_LARGE, seconds.toString(), Graphics.TEXT_JUSTIFY_CENTER);
             drawCountdownProgress(dc, w, msRemaining);
             drawFooter(dc, "START/STOP=ABORT");
             return;
@@ -489,21 +511,21 @@ class ShotTimerView extends WatchUi.View {
 
         if (_state == STATE_RUNNING) {
             var elapsed = System.getTimer() - _sessionStartMs;
-            drawBigTimer(dc, centerX, centerY - 28, formatMs(elapsed));
+            drawBigTimer(dc, centerX, centerY - 42, formatMs(elapsed));
 
             var shotLine = "Shots " + _shotTimes.size().toString();
-            dc.drawText(centerX, h - 94, Graphics.FONT_TINY, shotLine, Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(centerX, h - 104, Graphics.FONT_TINY, shotLine, Graphics.TEXT_JUSTIFY_CENTER);
 
             var splitText = "Split --";
             if (_splitTimes.size() > 0) {
                 splitText = "Last " + formatMs(_splitTimes[_splitTimes.size() - 1]);
             }
-            dc.drawText(centerX, h - 78, Graphics.FONT_TINY, splitText, Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(centerX, h - 88, Graphics.FONT_TINY, splitText, Graphics.TEXT_JUSTIFY_CENTER);
             var runningGpsLine = gpsBodyStatusText();
             if (runningGpsLine != "") {
-                dc.drawText(centerX, h - 62, Graphics.FONT_XTINY, runningGpsLine, Graphics.TEXT_JUSTIFY_CENTER);
+                dc.drawText(centerX, h - 72, Graphics.FONT_XTINY, runningGpsLine, Graphics.TEXT_JUSTIFY_CENTER);
             }
-            drawFooter(dc, "LAP=SPLIT  START/STOP=END");
+            drawFooter(dc, "LAP/DN=SPLIT  START/STOP=END");
             return;
         }
 
@@ -513,16 +535,16 @@ class ShotTimerView extends WatchUi.View {
             return;
         }
 
-        drawBigTimer(dc, centerX, centerY - 28, "READY");
-        dc.drawText(centerX, h - 94, Graphics.FONT_TINY, _weaponShortOptions[_weaponIndex], Graphics.TEXT_JUSTIFY_CENTER);
+        drawBigTimer(dc, centerX, centerY - 42, "READY");
+        dc.drawText(centerX, h - 104, Graphics.FONT_TINY, _weaponShortOptions[_weaponIndex], Graphics.TEXT_JUSTIFY_CENTER);
         var idleGpsLine = gpsBodyStatusText();
         if (idleGpsLine != "") {
-            dc.drawText(centerX, h - 78, Graphics.FONT_XTINY, idleGpsLine, Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(centerX, h - 88, Graphics.FONT_XTINY, idleGpsLine, Graphics.TEXT_JUSTIFY_CENTER);
         }
         if (_weaponNoticeUntilMs > System.getTimer()) {
-            dc.drawText(centerX, h - 62, Graphics.FONT_XTINY, "WEAPON UPDATED", Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(centerX, h - 72, Graphics.FONT_XTINY, "WEAPON UPDATED", Graphics.TEXT_JUSTIFY_CENTER);
         }
-        drawFooter(dc, "UP/DN=WEAPON  START=GO");
+        drawFooter(dc, "UP/DN/MENU=WEAPON  START=GO");
     }
 
     function drawTitle(dc, x) {
@@ -568,12 +590,12 @@ class ShotTimerView extends WatchUi.View {
         if (_gpsAccuracyMeters != null) {
             return;
         }
-        dc.drawText(centerX, 10, Graphics.FONT_XTINY, "GPS ACQUIRING", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, SAFE_TOP - 30, Graphics.FONT_XTINY, "GPS ACQUIRING", Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     function drawCountdownProgress(dc, width, msRemaining) {
         var barX = 36;
-        var barY = dc.getHeight() - 88;
+        var barY = dc.getHeight() - 96;
         var barW = width - 72;
         var barH = 8;
         var elapsedRatio = 1.0 - ((msRemaining * 1.0) / (_countdownSeconds * 1000.0));
@@ -701,7 +723,7 @@ class ShotTimerView extends WatchUi.View {
         if ((WatchUi has :KEY_START) && key == WatchUi.KEY_START) {
             return true;
         }
-        if (!(WatchUi has :KEY_START) && key == WatchUi.KEY_ENTER) {
+        if (key == WatchUi.KEY_ENTER) {
             return true;
         }
         return false;
@@ -711,7 +733,7 @@ class ShotTimerView extends WatchUi.View {
         if ((WatchUi has :KEY_LAP) && key == WatchUi.KEY_LAP) {
             return true;
         }
-        if (!(WatchUi has :KEY_LAP) && key == WatchUi.KEY_ENTER) {
+        if (key == WatchUi.KEY_DOWN) {
             return true;
         }
         return false;
@@ -733,6 +755,16 @@ class ShotTimerView extends WatchUi.View {
 
     function isSummaryNextInput(key) {
         return key == WatchUi.KEY_UP;
+    }
+
+    function isSummaryPrevInput(key) {
+        if (key == WatchUi.KEY_DOWN) {
+            return true;
+        }
+        if (key == WatchUi.KEY_MENU) {
+            return true;
+        }
+        return false;
     }
 
     function gpsBodyStatusText() {
@@ -889,6 +921,10 @@ class ShotTimerView extends WatchUi.View {
             "shotCount" => toSafeInt(stats[:shotCount]),
             "elapsedMs" => toSafeInt(stats[:elapsedMs]),
             "drawToFirstMs" => toSafeNullableInt(stats[:drawToFirstMs]),
+            "gpsVerifiedAtStart" => stats[:gpsVerifiedAtStart] ? true : false,
+            "gpsAccuracyAtStartM" => toSafeNullableInt(stats[:gpsAccuracyAtStartM]),
+            "gpsVerifiedAtEnd" => stats[:gpsVerifiedAtEnd] ? true : false,
+            "gpsAccuracyAtEndM" => toSafeNullableInt(stats[:gpsAccuracyAtEndM]),
             "avgSplitMs" => toSafeNullableInt(stats[:avgSplitMs]),
             "bestSplitMs" => toSafeNullableInt(stats[:bestSplitMs]),
             "worstSplitMs" => toSafeNullableInt(stats[:worstSplitMs]),
