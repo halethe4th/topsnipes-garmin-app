@@ -91,7 +91,7 @@ class ShotTimerView extends WatchUi.View {
     var _gpsAccuracyMeters = null;
     var _gpsMonitoring = false;
     var _gpsDeniedNoticeUntilMs = 0;
-    var _gpsSpinnerFrame = 0;
+    var _gpsAcquireProgress = 0;
 
     function initialize() {
         View.initialize();
@@ -110,9 +110,14 @@ class ShotTimerView extends WatchUi.View {
     }
 
     function onTick() {
-        _gpsSpinnerFrame = (_gpsSpinnerFrame + 1) % 4;
         if (!_gpsVerified && _gpsMonitoring) {
+            _gpsAcquireProgress += 3;
+            if (_gpsAcquireProgress > 90) {
+                _gpsAcquireProgress = 8;
+            }
             _gpsStatusText = buildGpsStatusText();
+        } else if (_gpsVerified) {
+            _gpsAcquireProgress = 100;
         }
         WatchUi.requestUpdate();
     }
@@ -516,17 +521,48 @@ class ShotTimerView extends WatchUi.View {
         }
 
         drawBigTimer(dc, centerX, h, "READY");
-        dc.drawText(centerX, (h / 2) + 46, Graphics.FONT_TINY, "Weapon " + _weaponShortOptions[_weaponIndex], Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(centerX, (h / 2) + 62, Graphics.FONT_TINY, _gpsStatusText, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, (h / 2) + 38, Graphics.FONT_XTINY, _weaponShortOptions[_weaponIndex], Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, (h / 2) + 56, Graphics.FONT_TINY, _gpsStatusText, Graphics.TEXT_JUSTIFY_CENTER);
         if (_gpsDeniedNoticeUntilMs > System.getTimer()) {
-            dc.drawText(centerX, (h / 2) + 78, Graphics.FONT_XTINY, "WAIT FOR GPS VERIFY", Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(centerX, (h / 2) + 72, Graphics.FONT_XTINY, "WAIT FOR GPS VERIFY", Graphics.TEXT_JUSTIFY_CENTER);
         }
         drawFooter(dc, "DOWN=WEAPON  START=GO");
     }
 
     function drawTitle(dc, x) {
+        drawGpsAcquireBar(dc);
         dc.drawText(x, SAFE_TOP, Graphics.FONT_SMALL, "SHOT TIMER", Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawLine(26, SAFE_TOP + 10, dc.getWidth() - 26, SAFE_TOP + 10);
+    }
+
+    function drawGpsAcquireBar(dc) {
+        var barX = 30;
+        var barY = SAFE_TOP - 18;
+        var barW = dc.getWidth() - 60;
+        var barH = 8;
+
+        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_BLACK);
+        dc.fillRoundedRectangle(barX, barY, barW, barH, 3);
+
+        var progress = _gpsAcquireProgress;
+        if (_gpsVerified) {
+            progress = 100;
+        } else if (progress < 0) {
+            progress = 0;
+        } else if (progress > 100) {
+            progress = 100;
+        }
+
+        var fillW = Math.round((barW * progress) / 100.0);
+        if (fillW < 2 && progress > 0) {
+            fillW = 2;
+        }
+        if (fillW > 0) {
+            dc.setColor(Graphics.COLOR_GREEN, Graphics.COLOR_BLACK);
+            dc.fillRoundedRectangle(barX, barY, fillW, barH, 3);
+        }
+
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
     }
 
     function drawBrandMark(dc, x, y) {
@@ -688,6 +724,18 @@ class ShotTimerView extends WatchUi.View {
 
         _gpsVerified = verified;
         _gpsAccuracyMeters = accuracy;
+        if (verified) {
+            _gpsAcquireProgress = 100;
+        } else if (accuracy != null) {
+            var estimated = 100 - Math.round((accuracy - GPS_GOOD_ACCURACY_METERS) * 1.4);
+            if (estimated < 8) {
+                estimated = 8;
+            }
+            if (estimated > 95) {
+                estimated = 95;
+            }
+            _gpsAcquireProgress = estimated;
+        }
         _gpsStatusText = buildGpsStatusText();
         WatchUi.requestUpdate();
     }
@@ -700,25 +748,12 @@ class ShotTimerView extends WatchUi.View {
             return "GPS VERIFIED";
         }
         if (_gpsMonitoring && _gpsAccuracyMeters == null) {
-            return "GPS ACQUIRING" + spinnerDots();
+            return "GPS ACQUIRING";
         }
         if (_gpsAccuracyMeters != null) {
             return "GPS NOT VERIFIED (" + Math.round(_gpsAccuracyMeters).toString() + "m)";
         }
         return "GPS NOT VERIFIED";
-    }
-
-    function spinnerDots() {
-        if (_gpsSpinnerFrame == 0) {
-            return "";
-        }
-        if (_gpsSpinnerFrame == 1) {
-            return ".";
-        }
-        if (_gpsSpinnerFrame == 2) {
-            return "..";
-        }
-        return "...";
     }
 
     function makeStorageSafeSession(stats) {
