@@ -22,7 +22,7 @@ class ShotTimerView extends WatchUi.View {
     const STATE_FINISHED = 3;
 
     var _state = STATE_IDLE;
-    var _countdownSeconds = 3;
+    var _countdownSeconds = 10;
     var _countdownEndMs = 0;
 
     var _sessionStartMs = 0;
@@ -92,6 +92,7 @@ class ShotTimerView extends WatchUi.View {
     var _gpsMonitoring = false;
     var _gpsDeniedNoticeUntilMs = 0;
     var _gpsAcquireProgress = 0;
+    var _weaponNoticeUntilMs = 0;
 
     function initialize() {
         View.initialize();
@@ -124,7 +125,7 @@ class ShotTimerView extends WatchUi.View {
 
     function handleKey(key) {
         try {
-            if (key == WatchUi.KEY_MENU || key == WatchUi.KEY_DOWN) {
+            if (key == WatchUi.KEY_MENU || key == WatchUi.KEY_DOWN || key == WatchUi.KEY_UP) {
                 if (_state == STATE_FINISHED) {
                     _summaryPage = _summaryPage - 1;
                     if (_summaryPage < 0) {
@@ -269,6 +270,7 @@ class ShotTimerView extends WatchUi.View {
     function cycleWeapon() {
         _weaponIndex = (_weaponIndex + 1) % _weaponOptions.size();
         _sessionName = _weaponOptions[_weaponIndex];
+        _weaponNoticeUntilMs = System.getTimer() + 1400;
         Application.Storage.setValue("topsnipes_weapon_index", _weaponIndex);
         WatchUi.requestUpdate();
     }
@@ -493,8 +495,10 @@ class ShotTimerView extends WatchUi.View {
                 msRemaining = 0;
             }
             var seconds = Math.floor((msRemaining + 999) / 1000);
+            dc.drawText(centerX, (h / 2) - 46, Graphics.FONT_SMALL, "GET READY", Graphics.TEXT_JUSTIFY_CENTER);
             drawBigTimer(dc, centerX, h, seconds.toString());
-            drawFooter(dc, "ENTER=SHOT  ESC=END");
+            drawCountdownProgress(dc, w, msRemaining);
+            drawFooter(dc, "ESC=ABORT");
             return;
         }
 
@@ -521,12 +525,15 @@ class ShotTimerView extends WatchUi.View {
         }
 
         drawBigTimer(dc, centerX, h, "READY");
-        dc.drawText(centerX, (h / 2) + 38, Graphics.FONT_XTINY, _weaponShortOptions[_weaponIndex], Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(centerX, (h / 2) + 56, Graphics.FONT_TINY, _gpsStatusText, Graphics.TEXT_JUSTIFY_CENTER);
-        if (_gpsDeniedNoticeUntilMs > System.getTimer()) {
-            dc.drawText(centerX, (h / 2) + 72, Graphics.FONT_XTINY, "WAIT FOR GPS VERIFY", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, (h / 2) + 30, Graphics.FONT_TINY, _weaponShortOptions[_weaponIndex], Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, (h / 2) + 48, Graphics.FONT_XTINY, _gpsStatusText, Graphics.TEXT_JUSTIFY_CENTER);
+        if (_weaponNoticeUntilMs > System.getTimer()) {
+            dc.drawText(centerX, (h / 2) + 64, Graphics.FONT_XTINY, "WEAPON UPDATED", Graphics.TEXT_JUSTIFY_CENTER);
         }
-        drawFooter(dc, "DOWN=WEAPON  START=GO");
+        if (_gpsDeniedNoticeUntilMs > System.getTimer()) {
+            dc.drawText(centerX, (h / 2) + 78, Graphics.FONT_XTINY, "WAIT FOR GPS VERIFY", Graphics.TEXT_JUSTIFY_CENTER);
+        }
+        drawFooter(dc, "UP/DOWN=WEAPON  START=GO");
     }
 
     function drawTitle(dc, x) {
@@ -562,6 +569,29 @@ class ShotTimerView extends WatchUi.View {
             dc.fillRoundedRectangle(barX, barY, fillW, barH, 3);
         }
 
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
+    }
+
+    function drawCountdownProgress(dc, width, msRemaining) {
+        var barX = 36;
+        var barY = (dc.getHeight() / 2) + 34;
+        var barW = width - 72;
+        var barH = 8;
+        var elapsedRatio = 1.0 - ((msRemaining * 1.0) / (_countdownSeconds * 1000.0));
+        if (elapsedRatio < 0) {
+            elapsedRatio = 0;
+        }
+        if (elapsedRatio > 1) {
+            elapsedRatio = 1;
+        }
+        var fillW = Math.round(barW * elapsedRatio);
+
+        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_BLACK);
+        dc.fillRoundedRectangle(barX, barY, barW, barH, 3);
+        if (fillW > 0) {
+            dc.setColor(Graphics.COLOR_GREEN, Graphics.COLOR_BLACK);
+            dc.fillRoundedRectangle(barX, barY, fillW, barH, 3);
+        }
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
     }
 
