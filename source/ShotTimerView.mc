@@ -111,9 +111,11 @@ class ShotTimerView extends WatchUi.View {
 
     function onTick() {
         if (!_gpsVerified && _gpsMonitoring) {
-            _gpsAcquireProgress += 1;
-            if (_gpsAcquireProgress > 92) {
-                _gpsAcquireProgress = 92;
+            if (_gpsAcquireProgress < 95) {
+                _gpsAcquireProgress += 1;
+                if (_gpsAcquireProgress > 95) {
+                    _gpsAcquireProgress = 95;
+                }
             }
             _gpsStatusText = buildGpsStatusText();
         } else if (_gpsVerified) {
@@ -123,62 +125,57 @@ class ShotTimerView extends WatchUi.View {
     }
 
     function handleKey(key) {
-        try {
-            if (key == WatchUi.KEY_MENU || key == WatchUi.KEY_DOWN || key == WatchUi.KEY_UP) {
-                if (_state == STATE_FINISHED) {
-                    _summaryPage = _summaryPage - 1;
-                    if (_summaryPage < 0) {
-                        _summaryPage = _summaryPages - 1;
-                    }
-                    WatchUi.requestUpdate();
-                    return true;
-                }
-                if (_state == STATE_IDLE || _state == STATE_FINISHED) {
-                    cycleWeapon();
-                    return true;
-                }
+        if (isStartStopInput(key)) {
+            if (_state == STATE_RUNNING || _state == STATE_COUNTDOWN) {
+                finishSession();
                 return true;
             }
-
-            if (key == WatchUi.KEY_START) {
-                if (_state == STATE_RUNNING || _state == STATE_COUNTDOWN) {
-                    finishSession();
-                    return true;
-                }
-                if (_state == STATE_IDLE || _state == STATE_FINISHED) {
-                    startCountdown();
-                    return true;
-                }
-            }
-
-            if (isLapInput(key)) {
-                if (_state == STATE_RUNNING) {
-                    registerShot();
-                    return true;
-                }
+            if (_state == STATE_IDLE || _state == STATE_FINISHED) {
+                startCountdown();
                 return true;
             }
+            return true;
+        }
 
-            if (key == WatchUi.KEY_ESC) {
-                if (_state == STATE_RUNNING || _state == STATE_COUNTDOWN) {
-                    finishSession();
-                    return true;
-                }
-
-                if (_state == STATE_FINISHED) {
-                    resetSession();
-                    return true;
-                }
+        if (isLapInput(key)) {
+            if (_state == STATE_RUNNING) {
+                registerShot();
                 return true;
             }
+            return true;
+        }
 
-            if (key == WatchUi.KEY_UP && _state == STATE_FINISHED) {
-                _summaryPage = (_summaryPage + 1) % _summaryPages;
+        if (isWeaponCycleInput(key)) {
+            if (_state == STATE_FINISHED) {
+                _summaryPage = _summaryPage - 1;
+                if (_summaryPage < 0) {
+                    _summaryPage = _summaryPages - 1;
+                }
                 WatchUi.requestUpdate();
                 return true;
             }
-        } catch (ex) {
-            System.println("Key handler error: " + ex.toString());
+            if (_state == STATE_IDLE) {
+                cycleWeapon();
+                return true;
+            }
+            return true;
+        }
+
+        if (isEscInput(key)) {
+            if (_state == STATE_FINISHED) {
+                resetSession();
+                return true;
+            }
+            if (_state == STATE_IDLE) {
+                cycleWeapon();
+                return true;
+            }
+            return true;
+        }
+
+        if (isSummaryNextInput(key) && _state == STATE_FINISHED) {
+            _summaryPage = (_summaryPage + 1) % _summaryPages;
+            WatchUi.requestUpdate();
             return true;
         }
 
@@ -469,7 +466,9 @@ class ShotTimerView extends WatchUi.View {
         var w = dc.getWidth();
         var h = dc.getHeight();
         var centerX = w / 2;
+        var centerY = h / 2;
 
+        drawTopGpsAcquireMessage(dc, centerX);
         drawTitle(dc, centerX);
 
         if (_state == STATE_COUNTDOWN) {
@@ -481,8 +480,8 @@ class ShotTimerView extends WatchUi.View {
                 msRemaining = 0;
             }
             var seconds = Math.floor((msRemaining + 999) / 1000);
-            dc.drawText(centerX, (h / 2) - 54, Graphics.FONT_SMALL, "GET READY", Graphics.TEXT_JUSTIFY_CENTER);
-            dc.drawText(centerX, (h / 2) - 2, Graphics.FONT_LARGE, seconds.toString(), Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(centerX, centerY - 58, Graphics.FONT_SMALL, "GET READY", Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(centerX, centerY - 16, Graphics.FONT_LARGE, seconds.toString(), Graphics.TEXT_JUSTIFY_CENTER);
             drawCountdownProgress(dc, w, msRemaining);
             drawFooter(dc, "START/STOP=ABORT");
             return;
@@ -490,17 +489,20 @@ class ShotTimerView extends WatchUi.View {
 
         if (_state == STATE_RUNNING) {
             var elapsed = System.getTimer() - _sessionStartMs;
-            drawBigTimer(dc, centerX, h, formatMs(elapsed));
+            drawBigTimer(dc, centerX, centerY - 28, formatMs(elapsed));
 
             var shotLine = "Shots " + _shotTimes.size().toString();
-            dc.drawText(centerX, (h / 2) + 46, Graphics.FONT_TINY, shotLine, Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(centerX, h - 94, Graphics.FONT_TINY, shotLine, Graphics.TEXT_JUSTIFY_CENTER);
 
             var splitText = "Split --";
             if (_splitTimes.size() > 0) {
                 splitText = "Last " + formatMs(_splitTimes[_splitTimes.size() - 1]);
             }
-            dc.drawText(centerX, (h / 2) + 62, Graphics.FONT_TINY, splitText, Graphics.TEXT_JUSTIFY_CENTER);
-            dc.drawText(centerX, (h / 2) + 78, Graphics.FONT_XTINY, _gpsStatusText, Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(centerX, h - 78, Graphics.FONT_TINY, splitText, Graphics.TEXT_JUSTIFY_CENTER);
+            var runningGpsLine = gpsBodyStatusText();
+            if (runningGpsLine != "") {
+                dc.drawText(centerX, h - 62, Graphics.FONT_XTINY, runningGpsLine, Graphics.TEXT_JUSTIFY_CENTER);
+            }
             drawFooter(dc, "LAP=SPLIT  START/STOP=END");
             return;
         }
@@ -511,13 +513,16 @@ class ShotTimerView extends WatchUi.View {
             return;
         }
 
-        drawBigTimer(dc, centerX, h, "READY");
-        dc.drawText(centerX, (h / 2) + 30, Graphics.FONT_TINY, _weaponShortOptions[_weaponIndex], Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(centerX, (h / 2) + 48, Graphics.FONT_XTINY, _gpsStatusText, Graphics.TEXT_JUSTIFY_CENTER);
-        if (_weaponNoticeUntilMs > System.getTimer()) {
-            dc.drawText(centerX, (h / 2) + 64, Graphics.FONT_XTINY, "WEAPON UPDATED", Graphics.TEXT_JUSTIFY_CENTER);
+        drawBigTimer(dc, centerX, centerY - 28, "READY");
+        dc.drawText(centerX, h - 94, Graphics.FONT_TINY, _weaponShortOptions[_weaponIndex], Graphics.TEXT_JUSTIFY_CENTER);
+        var idleGpsLine = gpsBodyStatusText();
+        if (idleGpsLine != "") {
+            dc.drawText(centerX, h - 78, Graphics.FONT_XTINY, idleGpsLine, Graphics.TEXT_JUSTIFY_CENTER);
         }
-        drawFooter(dc, "UP/DOWN=WEAPON  START=GO");
+        if (_weaponNoticeUntilMs > System.getTimer()) {
+            dc.drawText(centerX, h - 62, Graphics.FONT_XTINY, "WEAPON UPDATED", Graphics.TEXT_JUSTIFY_CENTER);
+        }
+        drawFooter(dc, "UP/DN=WEAPON  START=GO");
     }
 
     function drawTitle(dc, x) {
@@ -556,9 +561,19 @@ class ShotTimerView extends WatchUi.View {
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
     }
 
+    function drawTopGpsAcquireMessage(dc, centerX) {
+        if (!_gpsMonitoring || _gpsVerified) {
+            return;
+        }
+        if (_gpsAccuracyMeters != null) {
+            return;
+        }
+        dc.drawText(centerX, 10, Graphics.FONT_XTINY, "GPS ACQUIRING", Graphics.TEXT_JUSTIFY_CENTER);
+    }
+
     function drawCountdownProgress(dc, width, msRemaining) {
         var barX = 36;
-        var barY = (dc.getHeight() / 2) + 44;
+        var barY = dc.getHeight() - 88;
         var barW = width - 72;
         var barH = 8;
         var elapsedRatio = 1.0 - ((msRemaining * 1.0) / (_countdownSeconds * 1000.0));
@@ -626,8 +641,8 @@ class ShotTimerView extends WatchUi.View {
         _fitSession = null;
     }
 
-    function drawBigTimer(dc, centerX, h, value) {
-        dc.drawText(centerX, h / 2, Graphics.FONT_LARGE, value, Graphics.TEXT_JUSTIFY_CENTER);
+    function drawBigTimer(dc, centerX, y, value) {
+        dc.drawText(centerX, y, Graphics.FONT_LARGE, value, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     function drawSummary(dc, width, height, stats) {
@@ -682,14 +697,52 @@ class ShotTimerView extends WatchUi.View {
         dc.drawText(dc.getWidth() / 2, dc.getHeight() - SAFE_BOTTOM, Graphics.FONT_XTINY, text, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
-    function isLapInput(key) {
-        if (key == WatchUi.KEY_ENTER) {
+    function isStartStopInput(key) {
+        if ((WatchUi has :KEY_START) && key == WatchUi.KEY_START) {
             return true;
         }
-        if ((WatchUi has :KEY_LAP) && key == WatchUi.KEY_LAP) {
+        if (!(WatchUi has :KEY_START) && key == WatchUi.KEY_ENTER) {
             return true;
         }
         return false;
+    }
+
+    function isLapInput(key) {
+        if ((WatchUi has :KEY_LAP) && key == WatchUi.KEY_LAP) {
+            return true;
+        }
+        if (!(WatchUi has :KEY_LAP) && key == WatchUi.KEY_ENTER) {
+            return true;
+        }
+        return false;
+    }
+
+    function isWeaponCycleInput(key) {
+        if (key == WatchUi.KEY_DOWN) {
+            return true;
+        }
+        if (key == WatchUi.KEY_MENU) {
+            return true;
+        }
+        return false;
+    }
+
+    function isEscInput(key) {
+        return key == WatchUi.KEY_ESC;
+    }
+
+    function isSummaryNextInput(key) {
+        return key == WatchUi.KEY_UP;
+    }
+
+    function gpsBodyStatusText() {
+        if (!_gpsMonitoring) {
+            return "GPS UNAVAILABLE";
+        }
+        if (!_gpsVerified && _gpsAccuracyMeters == null) {
+            return "";
+        }
+        return _gpsStatusText;
     }
 
     function startGpsMonitoring() {
@@ -699,6 +752,7 @@ class ShotTimerView extends WatchUi.View {
         _gpsVerified = false;
         _gpsStatusText = "GPS CHECKING";
         _gpsAccuracyMeters = null;
+        _gpsAcquireProgress = 0;
         try {
             Position.enableLocationEvents(Position.LOCATION_CONTINUOUS, method(:onGpsUpdate));
             _gpsMonitoring = true;
