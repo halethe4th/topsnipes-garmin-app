@@ -598,13 +598,13 @@ class ShotTimerView extends WatchUi.View {
 
         if (_state == STATE_SETTINGS) {
             drawSettings(dc, w, h);
-            drawFooter("");
+            drawFooter(dc, "");
             return;
         }
 
         if (_state == STATE_FINISHED && _stats != null) {
             drawSummary(dc, w, h, _stats);
-            drawFooter("");
+            drawFooter(dc, "");
             return;
         }
 
@@ -625,7 +625,7 @@ class ShotTimerView extends WatchUi.View {
             dc.drawText(centerX, centerY - 66, Graphics.FONT_SMALL, "Get Ready", Graphics.TEXT_JUSTIFY_CENTER);
             dc.drawText(centerX, centerY - 22, Graphics.FONT_LARGE, seconds.toString(), Graphics.TEXT_JUSTIFY_CENTER);
             drawCountdownProgress(dc, w, msRemaining);
-            drawFooter("");
+            drawFooter(dc, "");
             return;
         }
 
@@ -645,7 +645,7 @@ class ShotTimerView extends WatchUi.View {
             if (runningGpsLine != "") {
                 dc.drawText(centerX, h - 72, Graphics.FONT_XTINY, runningGpsLine, Graphics.TEXT_JUSTIFY_CENTER);
             }
-            drawFooter("");
+            drawFooter(dc, "");
             return;
         }
 
@@ -659,7 +659,7 @@ class ShotTimerView extends WatchUi.View {
         if (_weaponNoticeUntilMs > System.getTimer()) {
             dc.drawText(centerX, h - 64, Graphics.FONT_XTINY, "WEAPON UPDATED", Graphics.TEXT_JUSTIFY_CENTER);
         }
-        drawFooter("");
+        drawFooter(dc, "");
     }
 
     function drawTitle(dc, x) {
