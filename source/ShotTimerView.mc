@@ -150,6 +150,12 @@ class ShotTimerView extends WatchUi.View {
         }
 
         if (_state == STATE_IDLE) {
+            if (key == WatchUi.KEY_UP && _stats != null) {
+                _state = STATE_FINISHED;
+                _summaryPage = 0;
+                WatchUi.requestUpdate();
+                return true;
+            }
             return true;
         }
 
@@ -616,7 +622,7 @@ class ShotTimerView extends WatchUi.View {
                 msRemaining = 0;
             }
             var seconds = Math.floor((msRemaining + 999) / 1000);
-            dc.drawText(centerX, centerY - 66, Graphics.FONT_SMALL, "GET READY", Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(centerX, centerY - 66, Graphics.FONT_SMALL, "Get Ready", Graphics.TEXT_JUSTIFY_CENTER);
             dc.drawText(centerX, centerY - 22, Graphics.FONT_LARGE, seconds.toString(), Graphics.TEXT_JUSTIFY_CENTER);
             drawCountdownProgress(dc, w, msRemaining);
             drawFooter("");
@@ -643,7 +649,7 @@ class ShotTimerView extends WatchUi.View {
             return;
         }
 
-        drawBigTimer(dc, centerX, centerY - 42, "READY");
+        drawBigTimer(dc, centerX, centerY - 42, "Ready");
         dc.drawText(centerX, h - 104, Graphics.FONT_TINY, _weaponShortOptions[_weaponIndex], Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(centerX, h - 92, Graphics.FONT_XTINY, "selected", Graphics.TEXT_JUSTIFY_CENTER);
         var idleGpsLine = gpsBodyStatusText();
@@ -658,8 +664,8 @@ class ShotTimerView extends WatchUi.View {
 
     function drawTitle(dc, x) {
         drawGpsAcquireBar(dc);
-        dc.drawText(x, SAFE_TOP, Graphics.FONT_SMALL, "SHOT TIMER", Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawLine(26, SAFE_TOP + 10, dc.getWidth() - 26, SAFE_TOP + 10);
+        dc.drawText(x, SAFE_TOP + 4, Graphics.FONT_MEDIUM, "Shot Timer", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawLine(26, SAFE_TOP + 16, dc.getWidth() - 26, SAFE_TOP + 16);
     }
 
     function drawGpsAcquireBar(dc) {
@@ -699,7 +705,7 @@ class ShotTimerView extends WatchUi.View {
         if (_gpsAccuracyMeters != null) {
             return;
         }
-        dc.drawText(centerX, 4, Graphics.FONT_XTINY, "GPS ACQUIRING", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, 2, Graphics.FONT_XTINY, "gps acquiring", Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     function drawCountdownProgress(dc, width, msRemaining) {
