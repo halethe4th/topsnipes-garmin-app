@@ -3,6 +3,7 @@ using Toybox.Activity;
 using Toybox.ActivityRecording;
 using Toybox.Graphics;
 using Toybox.Math;
+using Toybox.Position;
 using Toybox.System;
 using Toybox.Timer;
 using Toybox.WatchUi;
@@ -13,6 +14,7 @@ class ShotTimerView extends WatchUi.View {
     const APP_DATA_VERSION = 2;
     const SAFE_TOP = 46;
     const SAFE_BOTTOM = 42;
+    const GPS_GOOD_ACCURACY_METERS = 35;
 
     const STATE_IDLE = 0;
     const STATE_COUNTDOWN = 1;
@@ -61,6 +63,11 @@ class ShotTimerView extends WatchUi.View {
     var _summaryPage = 0;
     var _summaryPages = 3;
     var _fitSession = null;
+    var _gpsVerified = false;
+    var _gpsStatusText = "GPS CHECKING";
+    var _gpsAccuracyMeters = null;
+    var _gpsMonitoring = false;
+    var _gpsDeniedNoticeUntilMs = 0;
 
     function initialize() {
         View.initialize();
@@ -70,10 +77,12 @@ class ShotTimerView extends WatchUi.View {
 
     function onShow() {
         _tickTimer.start(method(:onTick), 100, true);
+        startGpsMonitoring();
     }
 
     function onHide() {
         _tickTimer.stop();
+        stopGpsMonitoring();
     }
 
     function onTick() {
@@ -145,6 +154,11 @@ class ShotTimerView extends WatchUi.View {
     }
 
     function startCountdown() {
+        if (!_gpsVerified) {
+            _gpsDeniedNoticeUntilMs = System.getTimer() + 1800;
+            WatchUi.requestUpdate();
+            return;
+        }
         _shotTimes = [];
         _splitTimes = [];
         _reloadSplits = [];
@@ -468,7 +482,10 @@ class ShotTimerView extends WatchUi.View {
 
         drawBigTimer(dc, centerX, h, "READY");
         dc.drawText(centerX, h - (SAFE_BOTTOM + 36), Graphics.FONT_TINY, "Weapon " + _sessionName, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(centerX, h - (SAFE_BOTTOM + 20), Graphics.FONT_TINY, "MENU=CHANGE", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, h - (SAFE_BOTTOM + 20), Graphics.FONT_TINY, _gpsStatusText, Graphics.TEXT_JUSTIFY_CENTER);
+        if (_gpsDeniedNoticeUntilMs > System.getTimer()) {
+            dc.drawText(centerX, h - (SAFE_BOTTOM + 6), Graphics.FONT_XTINY, "WAIT FOR GPS VERIFY", Graphics.TEXT_JUSTIFY_CENTER);
+        }
         drawFooter(dc, "START/ENTER=GO");
     }
 
@@ -579,6 +596,79 @@ class ShotTimerView extends WatchUi.View {
 
     function drawFooter(dc, text) {
         dc.drawText(dc.getWidth() / 2, dc.getHeight() - SAFE_BOTTOM, Graphics.FONT_XTINY, text, Graphics.TEXT_JUSTIFY_CENTER);
+    }
+
+    function startGpsMonitoring() {
+        if (_gpsMonitoring) {
+            return;
+        }
+        _gpsVerified = false;
+        _gpsStatusText = "GPS CHECKING";
+        _gpsAccuracyMeters = null;
+        try {
+            Position.enableLocationEvents(Position.LOCATION_CONTINUOUS, method(:onGpsUpdate));
+            _gpsMonitoring = true;
+        } catch (ex) {
+            _gpsStatusText = "GPS UNAVAILABLE";
+            _gpsMonitoring = false;
+            System.println("GPS start failed: " + ex.toString());
+        }
+        WatchUi.requestUpdate();
+    }
+
+    function stopGpsMonitoring() {
+        if (!_gpsMonitoring) {
+            return;
+        }
+        try {
+            Position.enableLocationEvents(Position.LOCATION_DISABLE, method(:onGpsUpdate));
+        } catch (ex) {
+            System.println("GPS stop failed: " + ex.toString());
+        }
+        _gpsMonitoring = false;
+    }
+
+    function onGpsUpdate(info) {
+        if (info == null) {
+            _gpsVerified = false;
+            _gpsAccuracyMeters = null;
+            _gpsStatusText = "GPS NOT VERIFIED";
+            WatchUi.requestUpdate();
+            return;
+        }
+
+        var accuracy = null;
+        if (info has :accuracy) {
+            accuracy = info.accuracy;
+        }
+
+        var hasPosition = false;
+        if (info has :position) {
+            hasPosition = (info.position != null);
+        }
+
+        var verified = hasPosition;
+        if (accuracy != null) {
+            verified = hasPosition && (accuracy <= GPS_GOOD_ACCURACY_METERS);
+        }
+
+        _gpsVerified = verified;
+        _gpsAccuracyMeters = accuracy;
+        _gpsStatusText = buildGpsStatusText();
+        WatchUi.requestUpdate();
+    }
+
+    function buildGpsStatusText() {
+        if (_gpsVerified) {
+            if (_gpsAccuracyMeters != null) {
+                return "GPS VERIFIED (" + Math.round(_gpsAccuracyMeters).toString() + "m)";
+            }
+            return "GPS VERIFIED";
+        }
+        if (_gpsAccuracyMeters != null) {
+            return "GPS NOT VERIFIED (" + Math.round(_gpsAccuracyMeters).toString() + "m)";
+        }
+        return "GPS NOT VERIFIED";
     }
 
     function makeStorageSafeSession(stats) {
