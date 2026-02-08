@@ -621,14 +621,14 @@ class ShotTimerView extends WatchUi.View {
             return;
         }
         try {
-            Position.enableLocationEvents(Position.LOCATION_DISABLE, method(:onGpsUpdate));
+            Position.enableLocationEvents(Position.LOCATION_DISABLE, null);
         } catch (ex) {
             System.println("GPS stop failed: " + ex.toString());
         }
         _gpsMonitoring = false;
     }
 
-    function onGpsUpdate(info) {
+    function onGpsUpdate(info as Position.Info) as Void {
         if (info == null) {
             _gpsVerified = false;
             _gpsAccuracyMeters = null;
@@ -714,13 +714,13 @@ class ShotTimerView extends WatchUi.View {
                 "elapsed" => toSafeInt(shot[:elapsed]),
                 "split" => toSafeInt(shot[:split]),
                 "isReload" => shot[:isReload] ? true : false,
-                "phase" => String(shot[:phase] || "unknown")
+                "phase" => toSafeString(shot[:phase], "unknown")
             });
         }
 
         return {
-            "dataVersion" => toSafeInt(stats[:dataVersion], APP_DATA_VERSION),
-            "weapon" => String(stats[:weapon] || _sessionName),
+            "dataVersion" => toSafeIntWithFallback(stats[:dataVersion], APP_DATA_VERSION),
+            "weapon" => toSafeString(stats[:weapon], _sessionName),
             "shotCount" => toSafeInt(stats[:shotCount]),
             "elapsedMs" => toSafeInt(stats[:elapsedMs]),
             "drawToFirstMs" => toSafeNullableInt(stats[:drawToFirstMs]),
@@ -749,6 +749,10 @@ class ShotTimerView extends WatchUi.View {
     }
 
     function toSafeInt(value, fallback) {
+        return toSafeIntWithFallback(value, 0);
+    }
+
+    function toSafeIntWithFallback(value, fallback) {
         var fb = fallback;
         if (fb == null) {
             fb = 0;
@@ -764,6 +768,13 @@ class ShotTimerView extends WatchUi.View {
             return null;
         }
         return Math.round(value);
+    }
+
+    function toSafeString(value, fallback) {
+        if (value == null) {
+            return fallback;
+        }
+        return value.toString();
     }
 
     function average(values) {

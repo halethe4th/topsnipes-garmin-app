@@ -11,6 +11,7 @@
     <iq:permissions>
       <iq:uses-permission id="PersistedContent" />
       <iq:uses-permission id="Fit" />
+      <iq:uses-permission id="Positioning" />
     </iq:permissions>
   </iq:application>
 </iq:manifest>
