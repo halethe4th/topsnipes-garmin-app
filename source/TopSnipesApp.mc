@@ -23,4 +23,8 @@ class ShotTimerDelegate extends WatchUi.InputDelegate {
     function onKey(keyEvent) {
         return _view.handleKey(keyEvent.getKey());
     }
+
+    function onMenu() {
+        return _view.openSettingsFromMenu();
+    }
 }
