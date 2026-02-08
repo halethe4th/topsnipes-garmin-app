@@ -90,7 +90,6 @@ class ShotTimerView extends WatchUi.View {
     var _gpsStatusText = "GPS CHECKING";
     var _gpsAccuracyMeters = null;
     var _gpsMonitoring = false;
-    var _gpsDeniedNoticeUntilMs = 0;
     var _gpsAcquireProgress = 0;
     var _weaponNoticeUntilMs = 0;
 
@@ -195,11 +194,6 @@ class ShotTimerView extends WatchUi.View {
     }
 
     function startCountdown() {
-        if (!_gpsVerified) {
-            _gpsDeniedNoticeUntilMs = System.getTimer() + 1800;
-            WatchUi.requestUpdate();
-            return;
-        }
         _shotTimes = [];
         _splitTimes = [];
         _reloadSplits = [];
@@ -514,6 +508,7 @@ class ShotTimerView extends WatchUi.View {
                 splitText = "Last " + formatMs(_splitTimes[_splitTimes.size() - 1]);
             }
             dc.drawText(centerX, (h / 2) + 62, Graphics.FONT_TINY, splitText, Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(centerX, (h / 2) + 78, Graphics.FONT_XTINY, _gpsStatusText, Graphics.TEXT_JUSTIFY_CENTER);
             drawFooter(dc, "ENTER=SHOT  ESC=END");
             return;
         }
@@ -530,10 +525,7 @@ class ShotTimerView extends WatchUi.View {
         if (_weaponNoticeUntilMs > System.getTimer()) {
             dc.drawText(centerX, (h / 2) + 64, Graphics.FONT_XTINY, "WEAPON UPDATED", Graphics.TEXT_JUSTIFY_CENTER);
         }
-        if (_gpsDeniedNoticeUntilMs > System.getTimer()) {
-            dc.drawText(centerX, (h / 2) + 78, Graphics.FONT_XTINY, "WAIT FOR GPS VERIFY", Graphics.TEXT_JUSTIFY_CENTER);
-        }
-        drawFooter(dc, "UP/DOWN=WEAPON  START=GO");
+        drawFooter(dc, "UP/DOWN=WEAPON  START=GO (GPS OPT)");
     }
 
     function drawTitle(dc, x) {
