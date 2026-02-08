@@ -748,7 +748,7 @@ class ShotTimerView extends WatchUi.View {
         };
     }
 
-    function toSafeInt(value, fallback) {
+    function toSafeInt(value) {
         return toSafeIntWithFallback(value, 0);
     }
 
