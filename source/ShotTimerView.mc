@@ -111,9 +111,9 @@ class ShotTimerView extends WatchUi.View {
 
     function onTick() {
         if (!_gpsVerified && _gpsMonitoring) {
-            _gpsAcquireProgress += 3;
-            if (_gpsAcquireProgress > 90) {
-                _gpsAcquireProgress = 8;
+            _gpsAcquireProgress += 1;
+            if (_gpsAcquireProgress > 92) {
+                _gpsAcquireProgress = 92;
             }
             _gpsStatusText = buildGpsStatusText();
         } else if (_gpsVerified) {
@@ -141,7 +141,7 @@ class ShotTimerView extends WatchUi.View {
             }
 
             if (key == WatchUi.KEY_START) {
-                if (_state == STATE_RUNNING) {
+                if (_state == STATE_RUNNING || _state == STATE_COUNTDOWN) {
                     finishSession();
                     return true;
                 }
@@ -151,20 +151,12 @@ class ShotTimerView extends WatchUi.View {
                 }
             }
 
-            if (key == WatchUi.KEY_ENTER) {
-                if (_state == STATE_COUNTDOWN) {
-                    return true;
-                }
-
+            if (isLapInput(key)) {
                 if (_state == STATE_RUNNING) {
                     registerShot();
                     return true;
                 }
-
-                if (_state == STATE_IDLE || _state == STATE_FINISHED) {
-                    startCountdown();
-                    return true;
-                }
+                return true;
             }
 
             if (key == WatchUi.KEY_ESC) {
@@ -489,10 +481,10 @@ class ShotTimerView extends WatchUi.View {
                 msRemaining = 0;
             }
             var seconds = Math.floor((msRemaining + 999) / 1000);
-            dc.drawText(centerX, (h / 2) - 46, Graphics.FONT_SMALL, "GET READY", Graphics.TEXT_JUSTIFY_CENTER);
-            drawBigTimer(dc, centerX, h, seconds.toString());
+            dc.drawText(centerX, (h / 2) - 54, Graphics.FONT_SMALL, "GET READY", Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(centerX, (h / 2) - 2, Graphics.FONT_LARGE, seconds.toString(), Graphics.TEXT_JUSTIFY_CENTER);
             drawCountdownProgress(dc, w, msRemaining);
-            drawFooter(dc, "ESC=ABORT");
+            drawFooter(dc, "START/STOP=ABORT");
             return;
         }
 
@@ -509,7 +501,7 @@ class ShotTimerView extends WatchUi.View {
             }
             dc.drawText(centerX, (h / 2) + 62, Graphics.FONT_TINY, splitText, Graphics.TEXT_JUSTIFY_CENTER);
             dc.drawText(centerX, (h / 2) + 78, Graphics.FONT_XTINY, _gpsStatusText, Graphics.TEXT_JUSTIFY_CENTER);
-            drawFooter(dc, "ENTER=SHOT  ESC=END");
+            drawFooter(dc, "LAP=SPLIT  START/STOP=END");
             return;
         }
 
@@ -525,7 +517,7 @@ class ShotTimerView extends WatchUi.View {
         if (_weaponNoticeUntilMs > System.getTimer()) {
             dc.drawText(centerX, (h / 2) + 64, Graphics.FONT_XTINY, "WEAPON UPDATED", Graphics.TEXT_JUSTIFY_CENTER);
         }
-        drawFooter(dc, "UP/DOWN=WEAPON  START=GO (GPS OPT)");
+        drawFooter(dc, "UP/DOWN=WEAPON  START=GO");
     }
 
     function drawTitle(dc, x) {
@@ -566,7 +558,7 @@ class ShotTimerView extends WatchUi.View {
 
     function drawCountdownProgress(dc, width, msRemaining) {
         var barX = 36;
-        var barY = (dc.getHeight() / 2) + 34;
+        var barY = (dc.getHeight() / 2) + 44;
         var barW = width - 72;
         var barH = 8;
         var elapsedRatio = 1.0 - ((msRemaining * 1.0) / (_countdownSeconds * 1000.0));
@@ -690,6 +682,16 @@ class ShotTimerView extends WatchUi.View {
         dc.drawText(dc.getWidth() / 2, dc.getHeight() - SAFE_BOTTOM, Graphics.FONT_XTINY, text, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
+    function isLapInput(key) {
+        if (key == WatchUi.KEY_ENTER) {
+            return true;
+        }
+        if ((WatchUi has :KEY_LAP) && key == WatchUi.KEY_LAP) {
+            return true;
+        }
+        return false;
+    }
+
     function startGpsMonitoring() {
         if (_gpsMonitoring) {
             return;
@@ -749,14 +751,16 @@ class ShotTimerView extends WatchUi.View {
         if (verified) {
             _gpsAcquireProgress = 100;
         } else if (accuracy != null) {
-            var estimated = 100 - Math.round((accuracy - GPS_GOOD_ACCURACY_METERS) * 1.4);
+            var estimated = 100 - Math.round((accuracy - GPS_GOOD_ACCURACY_METERS) * 1.2);
             if (estimated < 8) {
                 estimated = 8;
             }
             if (estimated > 95) {
                 estimated = 95;
             }
-            _gpsAcquireProgress = estimated;
+            if (estimated > _gpsAcquireProgress) {
+                _gpsAcquireProgress = estimated;
+            }
         }
         _gpsStatusText = buildGpsStatusText();
         WatchUi.requestUpdate();
