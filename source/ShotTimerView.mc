@@ -748,6 +748,9 @@ class ShotTimerView extends WatchUi.View {
             var prefix = "  ";
             if (i == _settingsIndex) {
                 prefix = "> ";
+                dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_BLACK);
+                dc.fillRoundedRectangle(18, rowY - 8, width - 36, 15, 3);
+                dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
             }
             dc.drawText(width / 2, rowY, Graphics.FONT_XTINY, trimForWatch(prefix + rows[i], 26), Graphics.TEXT_JUSTIFY_CENTER);
         }
