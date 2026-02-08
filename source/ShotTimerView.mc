@@ -13,6 +13,7 @@ class ShotTimerView extends WatchUi.View {
     const MAX_SESSION_HISTORY = 75;
     const APP_DATA_VERSION = 3;
     const GPS_GOOD_ACCURACY_METERS = 35;
+    const SETTINGS_ROW_COUNT = 5;
 
     const STATE_IDLE = 0;
     const STATE_COUNTDOWN = 1;
@@ -158,14 +159,14 @@ class ShotTimerView extends WatchUi.View {
         }
 
         if (_state == STATE_COUNTDOWN) {
-            if (isEscInput(key) || isLapInput(key)) {
+            if (isEscInput(key)) {
                 resetSession();
             }
             return true;
         }
 
         if (_state == STATE_RUNNING) {
-            if (isLapInput(key)) {
+            if (isLapInput(key) || isDownInput(key)) {
                 registerShot();
                 return true;
             }
@@ -233,14 +234,14 @@ class ShotTimerView extends WatchUi.View {
         if (isUpInput(key)) {
             _settingsIndex -= 1;
             if (_settingsIndex < 0) {
-                _settingsIndex = 4;
+                _settingsIndex = SETTINGS_ROW_COUNT - 1;
             }
             WatchUi.requestUpdate();
             return true;
         }
 
-        if (key == WatchUi.KEY_DOWN) {
-            _settingsIndex = (_settingsIndex + 1) % 5;
+        if (isDownInput(key)) {
+            _settingsIndex = (_settingsIndex + 1) % SETTINGS_ROW_COUNT;
             WatchUi.requestUpdate();
             return true;
         }
@@ -724,14 +725,14 @@ class ShotTimerView extends WatchUi.View {
 
     function drawSettings(dc, width, height) {
         var centerX = width / 2;
-        dc.drawText(centerX, 36, Graphics.FONT_SMALL, "SETTINGS", Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawLine(24, 50, width - 24, 50);
-        dc.drawText(centerX, 72, Graphics.FONT_XTINY, (_settingsIndex + 1).toString() + " / 5", Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(centerX, 126, Graphics.FONT_TINY, trimForWatch(settingLabel(_settingsIndex), 24), Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(centerX, 164, Graphics.FONT_SMALL, trimForWatch(settingValue(_settingsIndex), 16), Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(centerX, 216, Graphics.FONT_XTINY, "UP/DOWN NAV", Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(centerX, 234, Graphics.FONT_XTINY, "START SELECT", Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(centerX, 252, Graphics.FONT_XTINY, "MENU HOLD CLOSE", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, 30, Graphics.FONT_SMALL, "SETTINGS", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawLine(24, 44, width - 24, 44);
+        dc.drawText(centerX, 62, Graphics.FONT_XTINY, (_settingsIndex + 1).toString() + " / " + SETTINGS_ROW_COUNT.toString(), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, 104, Graphics.FONT_TINY, trimForWatch(settingLabel(_settingsIndex), 24), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, 138, Graphics.FONT_SMALL, trimForWatch(settingValue(_settingsIndex), 16), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, height - 42, Graphics.FONT_XTINY, "UP/DOWN NAV", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, height - 26, Graphics.FONT_XTINY, "START SELECT", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, height - 10, Graphics.FONT_XTINY, "MENU HOLD CLOSE", Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     function drawBrandMark(dc, x, y) {
@@ -822,16 +823,16 @@ class ShotTimerView extends WatchUi.View {
             ];
         }
 
-        dc.drawText(centerX, 36, Graphics.FONT_SMALL, title + " (" + (_summaryPage + 1).toString() + "/3)", Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawLine(24, 50, width - 24, 50);
+        dc.drawText(centerX, 30, Graphics.FONT_SMALL, title + " (" + (_summaryPage + 1).toString() + "/3)", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawLine(24, 44, width - 24, 44);
         for (var i = 0; i < lines.size(); i += 1) {
             drawSummaryLine(dc, centerX, i, lines[i]);
         }
-        dc.drawText(centerX, height - 32, Graphics.FONT_XTINY, "UP/DOWN PAGES", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, height - 14, Graphics.FONT_XTINY, "UP/DOWN PAGES", Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     function drawSummaryLine(dc, centerX, idx, text) {
-        var y = 100 + (idx * 24);
+        var y = 76 + (idx * 20);
         dc.drawText(centerX, y, Graphics.FONT_TINY, trimForWatch(text, 22), Graphics.TEXT_JUSTIFY_CENTER);
     }
 
@@ -860,7 +861,7 @@ class ShotTimerView extends WatchUi.View {
     }
 
     function isSummaryNextInput(key) {
-        return key == WatchUi.KEY_DOWN;
+        return isDownInput(key);
     }
 
     function isSummaryPrevInput(key) {
@@ -875,6 +876,16 @@ class ShotTimerView extends WatchUi.View {
             return true;
         }
         if (key == WatchUi.KEY_MENU) {
+            return true;
+        }
+        return false;
+    }
+
+    function isDownInput(key) {
+        if (key == WatchUi.KEY_DOWN) {
+            return true;
+        }
+        if ((WatchUi has :KEY_LAP) && key == WatchUi.KEY_LAP) {
             return true;
         }
         return false;
