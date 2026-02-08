@@ -12,14 +12,15 @@ class ShotTimerView extends WatchUi.View {
     const MIN_SHOT_INTERVAL_MS = 80;
     const MAX_SESSION_HISTORY = 75;
     const APP_DATA_VERSION = 3;
-    const SAFE_TOP = 54;
-    const SAFE_BOTTOM = 24;
+    const SAFE_TOP = 56;
+    const SAFE_BOTTOM = 50;
     const GPS_GOOD_ACCURACY_METERS = 35;
 
     const STATE_IDLE = 0;
     const STATE_COUNTDOWN = 1;
     const STATE_RUNNING = 2;
     const STATE_FINISHED = 3;
+    const STATE_SETTINGS = 4;
 
     var _state = STATE_IDLE;
     var _countdownSeconds = 10;
@@ -94,11 +95,16 @@ class ShotTimerView extends WatchUi.View {
     var _weaponNoticeUntilMs = 0;
     var _gpsVerifiedAtStart = false;
     var _gpsAccuracyAtStart = null;
+    var _settingsIndex = 0;
+    var _settingsReturnState = STATE_IDLE;
+    var _favoriteWeaponIndex = 0;
+    var _useFavoriteWeapon = false;
+    var _countdownOptions = [3, 5, 7, 10, 12, 15];
 
     function initialize() {
         View.initialize();
         _tickTimer = new Timer.Timer();
-        loadWeaponPreference();
+        loadUserPreferences();
     }
 
     function onShow() {
@@ -127,6 +133,10 @@ class ShotTimerView extends WatchUi.View {
     }
 
     function handleKey(key) {
+        if (_state == STATE_SETTINGS) {
+            return handleSettingsKey(key);
+        }
+
         if (isStartStopInput(key)) {
             if (_state == STATE_RUNNING || _state == STATE_COUNTDOWN) {
                 finishSession();
@@ -140,8 +150,8 @@ class ShotTimerView extends WatchUi.View {
         }
 
         if (_state == STATE_IDLE) {
-            if (isWeaponCycleInput(key) || isEscInput(key)) {
-                cycleWeapon();
+            if (isOpenSettingsInput(key)) {
+                openSettings();
                 return true;
             }
             return true;
@@ -155,12 +165,8 @@ class ShotTimerView extends WatchUi.View {
         }
 
         if (_state == STATE_RUNNING) {
-            if (isLapInput(key)) {
+            if (isLapInput(key) || key == WatchUi.KEY_ESC) {
                 registerShot();
-                return true;
-            }
-            if (isEscInput(key)) {
-                finishSession();
                 return true;
             }
             return true;
@@ -184,14 +190,100 @@ class ShotTimerView extends WatchUi.View {
                 WatchUi.requestUpdate();
                 return true;
             }
-            if (isWeaponCycleInput(key)) {
-                startCountdown();
+            if (isOpenSettingsInput(key)) {
+                openSettings();
                 return true;
             }
             return true;
         }
 
         return true;
+    }
+
+    function openSettings() {
+        _settingsReturnState = _state;
+        _settingsIndex = 0;
+        _state = STATE_SETTINGS;
+        WatchUi.requestUpdate();
+    }
+
+    function closeSettings() {
+        if (_settingsReturnState == STATE_FINISHED && _stats != null) {
+            _state = STATE_FINISHED;
+        } else {
+            _state = STATE_IDLE;
+        }
+        WatchUi.requestUpdate();
+    }
+
+    function handleSettingsKey(key) {
+        if (isEscInput(key) || key == WatchUi.KEY_MENU) {
+            closeSettings();
+            return true;
+        }
+
+        if (key == WatchUi.KEY_UP) {
+            _settingsIndex -= 1;
+            if (_settingsIndex < 0) {
+                _settingsIndex = 4;
+            }
+            WatchUi.requestUpdate();
+            return true;
+        }
+
+        if (key == WatchUi.KEY_DOWN) {
+            _settingsIndex = (_settingsIndex + 1) % 5;
+            WatchUi.requestUpdate();
+            return true;
+        }
+
+        if (isStartStopInput(key) || key == WatchUi.KEY_ENTER) {
+            applySettingsAction(_settingsIndex);
+            return true;
+        }
+
+        return true;
+    }
+
+    function applySettingsAction(index) {
+        if (index == 0) {
+            _countdownSeconds = nextCountdownOption(_countdownSeconds);
+            Application.Storage.setValue("topsnipes_countdown_seconds", _countdownSeconds);
+        } else if (index == 1) {
+            cycleWeaponInSettings();
+        } else if (index == 2) {
+            _favoriteWeaponIndex = _weaponIndex;
+            _useFavoriteWeapon = true;
+            Application.Storage.setValue("topsnipes_favorite_weapon_index", _favoriteWeaponIndex);
+            Application.Storage.setValue("topsnipes_use_favorite_weapon", _useFavoriteWeapon);
+        } else if (index == 3) {
+            _useFavoriteWeapon = !_useFavoriteWeapon;
+            Application.Storage.setValue("topsnipes_use_favorite_weapon", _useFavoriteWeapon);
+        } else if (index == 4) {
+            clearStoredHistory();
+        }
+        WatchUi.requestUpdate();
+    }
+
+    function cycleWeaponInSettings() {
+        _weaponIndex = (_weaponIndex + 1) % _weaponOptions.size();
+        _sessionName = _weaponOptions[_weaponIndex];
+        _weaponNoticeUntilMs = System.getTimer() + 1400;
+        Application.Storage.setValue("topsnipes_weapon_index", _weaponIndex);
+    }
+
+    function clearStoredHistory() {
+        Application.Storage.setValue("topsnipes_last_session", null);
+        Application.Storage.setValue("topsnipes_session_history", []);
+    }
+
+    function nextCountdownOption(currentValue) {
+        for (var i = 0; i < _countdownOptions.size(); i += 1) {
+            if (_countdownOptions[i] == currentValue) {
+                return _countdownOptions[(i + 1) % _countdownOptions.size()];
+            }
+        }
+        return _countdownOptions[0];
     }
 
     function startCountdown() {
@@ -263,14 +355,6 @@ class ShotTimerView extends WatchUi.View {
         _gpsVerifiedAtStart = false;
         _gpsAccuracyAtStart = null;
         stopFitRecording(false);
-        WatchUi.requestUpdate();
-    }
-
-    function cycleWeapon() {
-        _weaponIndex = (_weaponIndex + 1) % _weaponOptions.size();
-        _sessionName = _weaponOptions[_weaponIndex];
-        _weaponNoticeUntilMs = System.getTimer() + 1400;
-        Application.Storage.setValue("topsnipes_weapon_index", _weaponIndex);
         WatchUi.requestUpdate();
     }
 
@@ -378,22 +462,40 @@ class ShotTimerView extends WatchUi.View {
         }
     }
 
-    function loadWeaponPreference() {
+    function loadUserPreferences() {
         var savedIndex = Application.Storage.getValue("topsnipes_weapon_index");
         if (savedIndex == null) {
             _weaponIndex = 0;
             _sessionName = _weaponOptions[0];
-            return;
-        }
-
-        if (savedIndex < 0 || savedIndex >= _weaponOptions.size()) {
+        } else if (savedIndex < 0 || savedIndex >= _weaponOptions.size()) {
             _weaponIndex = 0;
             _sessionName = _weaponOptions[0];
-            return;
+        } else {
+            _weaponIndex = savedIndex;
+            _sessionName = _weaponOptions[_weaponIndex];
         }
 
-        _weaponIndex = savedIndex;
-        _sessionName = _weaponOptions[_weaponIndex];
+        var savedCountdown = Application.Storage.getValue("topsnipes_countdown_seconds");
+        if (savedCountdown != null && savedCountdown > 0) {
+            _countdownSeconds = savedCountdown;
+        }
+
+        var savedFavorite = Application.Storage.getValue("topsnipes_favorite_weapon_index");
+        if (savedFavorite != null && savedFavorite >= 0 && savedFavorite < _weaponOptions.size()) {
+            _favoriteWeaponIndex = savedFavorite;
+        } else {
+            _favoriteWeaponIndex = _weaponIndex;
+        }
+
+        var savedUseFavorite = Application.Storage.getValue("topsnipes_use_favorite_weapon");
+        if (savedUseFavorite != null) {
+            _useFavoriteWeapon = savedUseFavorite;
+        }
+
+        if (_useFavoriteWeapon) {
+            _weaponIndex = _favoriteWeaponIndex;
+            _sessionName = _weaponOptions[_weaponIndex];
+        }
     }
 
     function buildShotRecords() {
@@ -491,6 +593,12 @@ class ShotTimerView extends WatchUi.View {
         drawTopGpsAcquireMessage(dc, centerX);
         drawTitle(dc, centerX);
 
+        if (_state == STATE_SETTINGS) {
+            drawSettings(dc, w, h);
+            drawFooter(dc, "UP/DN NAV  START=APPLY  ESC=EXIT");
+            return;
+        }
+
         if (_state == STATE_COUNTDOWN) {
             var msRemaining = _countdownEndMs - System.getTimer();
             if (msRemaining <= 0) {
@@ -505,7 +613,7 @@ class ShotTimerView extends WatchUi.View {
             dc.drawText(centerX, centerY - 66, Graphics.FONT_SMALL, "GET READY", Graphics.TEXT_JUSTIFY_CENTER);
             dc.drawText(centerX, centerY - 22, Graphics.FONT_LARGE, seconds.toString(), Graphics.TEXT_JUSTIFY_CENTER);
             drawCountdownProgress(dc, w, msRemaining);
-            drawFooter(dc, "START/STOP=ABORT");
+            drawFooter(dc, "START=ABORT");
             return;
         }
 
@@ -525,13 +633,13 @@ class ShotTimerView extends WatchUi.View {
             if (runningGpsLine != "") {
                 dc.drawText(centerX, h - 72, Graphics.FONT_XTINY, runningGpsLine, Graphics.TEXT_JUSTIFY_CENTER);
             }
-            drawFooter(dc, "LAP/DN=SPLIT  START/STOP=END");
+            drawFooter(dc, "LAP=SPLIT  START=END");
             return;
         }
 
         if (_state == STATE_FINISHED && _stats != null) {
             drawSummary(dc, w, h, _stats);
-            drawFooter(dc, "UP/DOWN=PAGE  ESC=RESET  START=NEW");
+            drawFooter(dc, "UP/DN=PAGE  ESC=IDLE  START=NEW");
             return;
         }
 
@@ -544,7 +652,7 @@ class ShotTimerView extends WatchUi.View {
         if (_weaponNoticeUntilMs > System.getTimer()) {
             dc.drawText(centerX, h - 72, Graphics.FONT_XTINY, "WEAPON UPDATED", Graphics.TEXT_JUSTIFY_CENTER);
         }
-        drawFooter(dc, "UP/DN/MENU=WEAPON  START=GO");
+        drawFooter(dc, "MENU/UP=SETTINGS  START=GO");
     }
 
     function drawTitle(dc, x) {
@@ -590,7 +698,7 @@ class ShotTimerView extends WatchUi.View {
         if (_gpsAccuracyMeters != null) {
             return;
         }
-        dc.drawText(centerX, SAFE_TOP - 30, Graphics.FONT_XTINY, "GPS ACQUIRING", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, 12, Graphics.FONT_XTINY, "GPS ACQUIRING", Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     function drawCountdownProgress(dc, width, msRemaining) {
@@ -614,6 +722,28 @@ class ShotTimerView extends WatchUi.View {
             dc.fillRoundedRectangle(barX, barY, fillW, barH, 3);
         }
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
+    }
+
+    function drawSettings(dc, width, height) {
+        var y = SAFE_TOP + 20;
+        dc.drawText(width / 2, y, Graphics.FONT_SMALL, "SETTINGS", Graphics.TEXT_JUSTIFY_CENTER);
+
+        var rows = [
+            "Countdown: " + _countdownSeconds.toString() + "s",
+            "Weapon: " + _weaponShortOptions[_weaponIndex],
+            "Favorite: " + _weaponShortOptions[_favoriteWeaponIndex],
+            "Use Favorite: " + boolLabel(_useFavoriteWeapon),
+            "Clear Session Logs"
+        ];
+
+        for (var i = 0; i < rows.size(); i += 1) {
+            var rowY = y + 20 + (i * 16);
+            var prefix = "  ";
+            if (i == _settingsIndex) {
+                prefix = "> ";
+            }
+            dc.drawText(width / 2, rowY, Graphics.FONT_XTINY, trimForWatch(prefix + rows[i], 26), Graphics.TEXT_JUSTIFY_CENTER);
+        }
     }
 
     function drawBrandMark(dc, x, y) {
@@ -668,51 +798,49 @@ class ShotTimerView extends WatchUi.View {
     }
 
     function drawSummary(dc, width, height, stats) {
-        var pageTitle = "SUMMARY";
-        if (_summaryPage == 1) {
-            pageTitle = "CADENCE";
-        } else if (_summaryPage == 2) {
-            pageTitle = "READINESS";
-        }
-        dc.drawText(width / 2, SAFE_TOP, Graphics.FONT_SMALL, pageTitle + " (" + (_summaryPage + 1).toString() + "/3)", Graphics.TEXT_JUSTIFY_CENTER);
-
+        var title = "SUMMARY";
+        var lines = [];
         if (_summaryPage == 0) {
-            drawSummaryLine(dc, width, 0, "Weapon: " + stats[:weapon]);
-            drawSummaryLine(dc, width, 1, "Shots: " + stats[:shotCount].toString());
-            drawSummaryLine(dc, width, 2, "Draw->1st: " + formatMaybe(stats[:drawToFirstMs]));
-            drawSummaryLine(dc, width, 3, "Avg Split: " + formatMaybe(stats[:avgSplitMs]));
-            drawSummaryLine(dc, width, 4, "Best/Worst: " + formatMaybe(stats[:bestSplitMs]) + " / " + formatMaybe(stats[:worstSplitMs]));
-            drawSummaryLine(dc, width, 5, "Split SD: " + formatMaybe(stats[:splitStdDevMs]));
-            drawSummaryLine(dc, width, 6, "Reloads: " + stats[:reloadCount].toString() + " avg " + formatMaybe(stats[:avgReloadMs]));
-            drawSummaryLine(dc, width, 7, "Elapsed: " + formatMs(stats[:elapsedMs]));
-            return;
+            title = "SUMMARY";
+            lines = [
+                "Weapon: " + trimForWatch(stats[:weapon], 14),
+                "Shots: " + stats[:shotCount].toString(),
+                "Draw: " + formatMaybe(stats[:drawToFirstMs]),
+                "Avg: " + formatMaybe(stats[:avgSplitMs]),
+                "Best: " + formatMaybe(stats[:bestSplitMs]),
+                "Elapsed: " + formatMs(stats[:elapsedMs])
+            ];
+        } else if (_summaryPage == 1) {
+            title = "CADENCE";
+            lines = [
+                "Aggressive: " + stats[:cadenceBands][:aggressive].toString(),
+                "Combat: " + stats[:cadenceBands][:combat].toString(),
+                "Control: " + stats[:cadenceBands][:control].toString(),
+                "Transitions: " + stats[:transitionCount].toString(),
+                "Burst: " + formatPercent(stats[:burstRatio]),
+                "Control: " + formatPercent(stats[:controlRatio])
+            ];
+        } else {
+            title = "READINESS";
+            lines = [
+                "First3: " + formatMaybe(stats[:firstThreeAvgMs]),
+                "Last3: " + formatMaybe(stats[:lastThreeAvgMs]),
+                "Fatigue: " + formatSigned(stats[:fatigueDeltaMs]),
+                "Cadence: " + stats[:cadenceScore].toString(),
+                "Execution: " + stats[:executionScore].toString(),
+                "Ready: " + stats[:readinessScore].toString()
+            ];
         }
 
-        if (_summaryPage == 1) {
-            drawSummaryLine(dc, width, 0, "Aggressive: " + stats[:cadenceBands][:aggressive].toString());
-            drawSummaryLine(dc, width, 1, "Combat: " + stats[:cadenceBands][:combat].toString());
-            drawSummaryLine(dc, width, 2, "Control: " + stats[:cadenceBands][:control].toString());
-            drawSummaryLine(dc, width, 3, "Recovery: " + stats[:cadenceBands][:recovery].toString());
-            drawSummaryLine(dc, width, 4, "Transitions: " + stats[:transitionCount].toString());
-            drawSummaryLine(dc, width, 5, "Fast streak: " + stats[:longestFastStreak].toString());
-            drawSummaryLine(dc, width, 6, "Burst ratio: " + formatPercent(stats[:burstRatio]));
-            drawSummaryLine(dc, width, 7, "Control ratio: " + formatPercent(stats[:controlRatio]));
-            return;
+        dc.drawText(width / 2, SAFE_TOP + 2, Graphics.FONT_SMALL, title + " (" + (_summaryPage + 1).toString() + "/3)", Graphics.TEXT_JUSTIFY_CENTER);
+        for (var i = 0; i < lines.size(); i += 1) {
+            drawSummaryLine(dc, width, i, lines[i]);
         }
-
-        drawSummaryLine(dc, width, 0, "First3 avg: " + formatMaybe(stats[:firstThreeAvgMs]));
-        drawSummaryLine(dc, width, 1, "Last3 avg: " + formatMaybe(stats[:lastThreeAvgMs]));
-        drawSummaryLine(dc, width, 2, "Fatigue delta: " + formatSigned(stats[:fatigueDeltaMs]));
-        drawSummaryLine(dc, width, 3, "Cadence score: " + stats[:cadenceScore].toString());
-        drawSummaryLine(dc, width, 4, "Execution score: " + stats[:executionScore].toString());
-        drawSummaryLine(dc, width, 5, "Readiness: " + stats[:readinessScore].toString());
-        drawSummaryLine(dc, width, 6, "Data version: " + stats[:dataVersion].toString());
-        drawSummaryLine(dc, width, 7, "UP/DOWN pages");
     }
 
     function drawSummaryLine(dc, width, idx, text) {
-        var y = SAFE_TOP + 26 + (idx * 16);
-        dc.drawText(width / 2, y, Graphics.FONT_TINY, text, Graphics.TEXT_JUSTIFY_CENTER);
+        var y = SAFE_TOP + 28 + (idx * 16);
+        dc.drawText(width / 2, y, Graphics.FONT_XTINY, trimForWatch(text, 26), Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     function drawFooter(dc, text) {
@@ -733,17 +861,7 @@ class ShotTimerView extends WatchUi.View {
         if ((WatchUi has :KEY_LAP) && key == WatchUi.KEY_LAP) {
             return true;
         }
-        if (key == WatchUi.KEY_DOWN) {
-            return true;
-        }
-        return false;
-    }
-
-    function isWeaponCycleInput(key) {
-        if (key == WatchUi.KEY_DOWN) {
-            return true;
-        }
-        if (key == WatchUi.KEY_MENU) {
+        if (!(WatchUi has :KEY_LAP) && key == WatchUi.KEY_ESC) {
             return true;
         }
         return false;
@@ -762,6 +880,16 @@ class ShotTimerView extends WatchUi.View {
             return true;
         }
         if (key == WatchUi.KEY_MENU) {
+            return true;
+        }
+        return false;
+    }
+
+    function isOpenSettingsInput(key) {
+        if (key == WatchUi.KEY_MENU) {
+            return true;
+        }
+        if (key == WatchUi.KEY_UP) {
             return true;
         }
         return false;
@@ -976,6 +1104,23 @@ class ShotTimerView extends WatchUi.View {
             return fallback;
         }
         return value.toString();
+    }
+
+    function boolLabel(value) {
+        if (value) {
+            return "ON";
+        }
+        return "OFF";
+    }
+
+    function trimForWatch(text, limit) {
+        if (text == null) {
+            return "";
+        }
+        if (text.length() <= limit) {
+            return text;
+        }
+        return text.substring(0, limit - 3) + "...";
     }
 
     function average(values) {
