@@ -3,7 +3,7 @@ import Toybox.Lang;
 
 module Constants {
 
-    public enum SessionState {
+    enum SessionState {
         STATE_IDLE,
         STATE_READY,
         STATE_COUNTDOWN,
@@ -11,7 +11,7 @@ module Constants {
         STATE_COMPLETE
     }
 
-    public enum WeaponType {
+    enum WeaponType {
         WEAPON_HANDGUN,
         WEAPON_RIFLE,
         WEAPON_SHOTGUN,
@@ -19,7 +19,7 @@ module Constants {
         WEAPON_CARBINE
     }
 
-    public enum DrillType {
+    enum DrillType {
         DRILL_FREESTYLE,
         DRILL_BILL_DRILL,
         DRILL_EL_PRES,
@@ -49,12 +49,12 @@ module Constants {
     const SHOT_POWER_MAX = 15000;
     const GPS_TIMEOUT_MS = 30000;
 
-    const COLOR_BG = Graphics.COLOR_BLACK;
-    const COLOR_TEXT = Graphics.COLOR_WHITE;
-    const COLOR_ACCENT = Graphics.COLOR_GREEN;
-    const COLOR_WARNING = Graphics.COLOR_YELLOW;
-    const COLOR_ALERT = Graphics.COLOR_RED;
-    const COLOR_SUBTLE = Graphics.COLOR_LT_GRAY;
+    const COLOR_BG = 0x000000;
+    const COLOR_TEXT = 0xFFFFFF;
+    const COLOR_ACCENT = 0x00FF00;
+    const COLOR_WARNING = 0xFFFF00;
+    const COLOR_ALERT = 0xFF0000;
+    const COLOR_SUBTLE = 0x888888;
 
     function weaponLabel(weapon as Number) as String {
         if (weapon == WeaponType.WEAPON_RIFLE) {
