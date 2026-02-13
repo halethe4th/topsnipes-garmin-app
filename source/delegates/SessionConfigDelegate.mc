@@ -1,4 +1,6 @@
 import Toybox.WatchUi;
+import Toybox.Lang;
+
 
 class SessionConfigDelegate extends WatchUi.BehaviorDelegate {
     var _view as SessionConfigView;

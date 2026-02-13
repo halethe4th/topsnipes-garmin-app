@@ -7,6 +7,8 @@ import Toybox.Math;
 import Toybox.Position;
 import Toybox.System;
 import Toybox.Time;
+import Toybox.Lang;
+
 
 class SessionManager {
     var _storage as StorageManager;

@@ -1,5 +1,6 @@
 import Toybox.Graphics;
 import Toybox.WatchUi;
+import Toybox.Lang;
 
 class HistoryView extends WatchUi.View {
     var _sessions as Array<SessionData>;

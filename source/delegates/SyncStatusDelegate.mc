@@ -1,4 +1,6 @@
 import Toybox.WatchUi;
+import Toybox.Lang;
+
 
 class SyncStatusDelegate extends WatchUi.BehaviorDelegate {
     var _view as SyncStatusView;

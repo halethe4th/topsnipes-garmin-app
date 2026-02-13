@@ -1,4 +1,5 @@
 import Toybox.WatchUi;
+import Toybox.Lang;
 
 class MainMenuDelegate extends WatchUi.BehaviorDelegate {
     var _view as MainMenuView;

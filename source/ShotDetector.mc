@@ -1,5 +1,6 @@
 import Toybox.Sensor;
 import Toybox.System;
+import Toybox.Lang;
 
 class ShotDetector {
     var _onShot as Method;
@@ -10,6 +11,7 @@ class ShotDetector {
     var _baselinePower as Number;
     var _thresholdPower as Number;
     var _calibrationEndTs as Number;
+    
 
     function initialize(onShotHandler as Method) {
         _onShot = onShotHandler;

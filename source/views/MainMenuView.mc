@@ -1,5 +1,6 @@
 import Toybox.Graphics;
 import Toybox.WatchUi;
+import Toybox.Lang;
 
 class MainMenuView extends WatchUi.View {
     var _items as Array<String>;

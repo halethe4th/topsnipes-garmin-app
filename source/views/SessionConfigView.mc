@@ -1,6 +1,7 @@
 import Toybox.Application;
 import Toybox.Graphics;
 import Toybox.WatchUi;
+import Toybox.Lang;
 
 class SessionConfigView extends WatchUi.View {
     var _selectedRow as Number;

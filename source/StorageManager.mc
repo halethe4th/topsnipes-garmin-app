@@ -1,5 +1,6 @@
 import Toybox.Application;
 import Toybox.Math;
+import Toybox.Lang;
 
 class StorageManager {
     function initialize() {

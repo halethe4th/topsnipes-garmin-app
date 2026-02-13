@@ -1,6 +1,7 @@
 import Toybox.Application;
 import Toybox.Sensor;
 import Toybox.WatchUi;
+import Toybox.Lang;
 
 class TopSnipesApp extends Application.AppBase {
     var _storage as StorageManager;

@@ -1,5 +1,6 @@
 import Toybox.Graphics;
 import Toybox.WatchUi;
+import Toybox.Lang;
 
 class TopSnipesGlanceView extends WatchUi.GlanceView {
     function initialize() {

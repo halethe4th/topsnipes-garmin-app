@@ -1,5 +1,7 @@
 import Toybox.Graphics;
 import Toybox.System;
+import Toybox.Lang;
+
 
 module DeviceUtils {
     function isRound(dc as Graphics.Dc) as Boolean {

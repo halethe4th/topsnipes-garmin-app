@@ -1,5 +1,6 @@
 import Toybox.Graphics;
 import Toybox.WatchUi;
+import Toybox.Lang;
 
 class ReviewView extends WatchUi.View {
     var _session as SessionData;

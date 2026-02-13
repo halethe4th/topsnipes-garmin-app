@@ -1,5 +1,7 @@
 import Toybox.Math;
 import Toybox.Time;
+import Toybox.Lang;
+
 
 class SessionData {
     var sessionId as String;

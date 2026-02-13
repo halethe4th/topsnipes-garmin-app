@@ -1,5 +1,6 @@
 import Toybox.System;
 import Toybox.WatchUi;
+import Toybox.Lang;
 
 class ActiveSessionDelegate extends WatchUi.BehaviorDelegate {
     var _view as ActiveSessionView;

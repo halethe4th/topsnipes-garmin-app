@@ -1,6 +1,7 @@
 import Toybox.Application;
 import Toybox.Graphics;
 import Toybox.WatchUi;
+import Toybox.Lang;
 
 class SettingsInfoView extends WatchUi.View {
     var _selected as Number;

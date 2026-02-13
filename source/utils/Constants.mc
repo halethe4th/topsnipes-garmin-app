@@ -1,7 +1,9 @@
 import Toybox.Graphics;
+import Toybox.Lang;
 
 module Constants {
-    enum SessionState {
+
+    public enum SessionState {
         STATE_IDLE,
         STATE_READY,
         STATE_COUNTDOWN,
@@ -9,7 +11,7 @@ module Constants {
         STATE_COMPLETE
     }
 
-    enum WeaponType {
+    public enum WeaponType {
         WEAPON_HANDGUN,
         WEAPON_RIFLE,
         WEAPON_SHOTGUN,
@@ -17,7 +19,7 @@ module Constants {
         WEAPON_CARBINE
     }
 
-    enum DrillType {
+    public enum DrillType {
         DRILL_FREESTYLE,
         DRILL_BILL_DRILL,
         DRILL_EL_PRES,

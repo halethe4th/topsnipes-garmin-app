@@ -1,6 +1,7 @@
 import Toybox.Graphics;
 import Toybox.Timer;
 import Toybox.WatchUi;
+import Toybox.Lang;
 
 class SyncStatusView extends WatchUi.View {
     var _timer as Timer.Timer;

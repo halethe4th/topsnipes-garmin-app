@@ -1,5 +1,6 @@
 import Toybox.Math;
 import Toybox.System;
+import Toybox.Lang;
 
 class TimerEngine {
     var _sessionStartMs as Number;
