@@ -1,6 +1,7 @@
 import Toybox.Graphics;
 import Toybox.Timer;
 import Toybox.WatchUi;
+import Toybox.Lang;
 
 class ActiveSessionView extends WatchUi.View {
     var _updateTimer as Timer.Timer;
